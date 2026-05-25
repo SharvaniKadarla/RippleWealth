@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <title>RippleWealth — Portfolio Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Geist:wght@200;300;400;500;600&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{
+          --black:#000;--off-black:#080808;--panel:#111;--panel2:#161616;
+          --border:rgba(255,255,255,0.1);--border-bright:rgba(255,255,255,0.2);
+          --white:#fff;--off-white:#f5f5f7;--text:#e8e8ed;--muted:#86868b;
+          --faint:#48484a;--green:#30d158;--green-dim:rgba(48,209,88,0.15);
+          --red:#ff453a;--red-dim:rgba(255,69,58,0.15);--blue:#0a84ff;
+          --blue-dim:rgba(10,132,255,0.12);--gold:#ffd60a;--gold-dim:rgba(255,214,10,0.12);
+          --radius:18px;--nav-h:48px;
+        }
+        html{scroll-behavior:smooth;font-size:16px}
+        body{background:var(--black);color:var(--text);font-family:'Geist',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;cursor:none}
+
+        /* CURSOR */
+        .cursor{position:fixed;z-index:99999;pointer-events:none;mix-blend-mode:difference}
+        .cursor-dot{width:8px;height:8px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);transition:transform .08s ease,width .25s ease,height .25s ease;position:absolute}
+        .cursor-ring{width:36px;height:36px;border-radius:50%;border:1.5px solid rgba(255,255,255,.6);transform:translate(-50%,-50%);position:absolute;transition:transform .18s ease,width .3s ease,height .3s ease,opacity .3s ease}
+        body.hovering .cursor-dot{width:4px;height:4px}
+        body.hovering .cursor-ring{width:54px;height:54px;opacity:.5}
+
+        /* NAV */
+        .nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:var(--nav-h);display:flex;align-items:center;padding:0 22px;transition:background .4s ease,backdrop-filter .4s ease,border-color .4s ease;border-bottom:1px solid transparent}
+        .nav.scrolled{background:rgba(0,0,0,.72);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-color:rgba(255,255,255,.08)}
+        .nav-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.06em;color:var(--white);margin-right:auto;cursor:pointer;text-decoration:none}
+        .nav-links{display:flex;align-items:center;gap:28px;list-style:none}
+        .nav-links a{font-size:13px;font-weight:400;color:var(--muted);text-decoration:none;transition:color .2s;letter-spacing:.01em}
+        .nav-links a:hover{color:var(--white)}
+        .nav-cta{margin-left:28px;padding:7px 18px;background:var(--white);color:var(--black);border:none;border-radius:980px;font-family:'Geist',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
+        .nav-cta:hover{background:var(--off-white);transform:scale(1.02)}
+        .nav-burger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
+        .nav-burger span{width:22px;height:1.5px;background:var(--white);transition:all .3s;display:block}
+        .nav-drawer{position:fixed;top:var(--nav-h);left:0;right:0;z-index:999;background:rgba(0,0,0,.96);backdrop-filter:blur(30px);padding:24px 22px 32px;display:flex;flex-direction:column;gap:0;transform:translateY(-110%);transition:transform .4s cubic-bezier(.4,0,.2,1);border-bottom:1px solid var(--border)}
+        .nav-drawer.open{transform:translateY(0)}
+        .nav-drawer a{padding:16px 0;font-size:18px;font-weight:400;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);display:block;transition:color .2s}
+        .nav-drawer a:hover{color:var(--white)}
+        .nav-drawer .nav-cta{margin:20px 0 0;width:100%;justify-content:center;font-size:15px;padding:14px}
+
+        /* HERO */
+        .hero{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative;overflow:hidden}
+        .hero-bg{position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(255,255,255,.04),transparent)}
+        .hero-glow{position:absolute;width:600px;height:600px;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0;background:radial-gradient(circle,rgba(255,255,255,.06),transparent 70%);top:20%;left:50%;transform:translateX(-50%);animation:heroGlow 8s ease-in-out infinite}
+        @keyframes heroGlow{0%,100%{opacity:.6;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.1)}}
+        .hero-content{position:relative;z-index:2;max-width:900px;margin:0 auto}
+        .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:980px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);font-size:12px;font-weight:400;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:32px;animation:fadeUp .8s ease both}
+        .hero-eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+        .hero-h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(72px,14vw,160px);letter-spacing:.02em;line-height:.9;color:var(--white);margin-bottom:8px;animation:fadeUp .9s ease .1s both}
+        .hero-h1 em{font-family:'Instrument Serif',serif;font-style:italic;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.5)}
+        .hero-h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(72px,14vw,160px);letter-spacing:.02em;line-height:.9;color:var(--muted);margin-bottom:36px;animation:fadeUp 1s ease .2s both}
+        .hero-sub{font-size:clamp(16px,2.5vw,21px);font-weight:300;color:var(--muted);max-width:560px;margin:0 auto 48px;line-height:1.6;animation:fadeUp 1s ease .3s both}
+        .hero-actions{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;animation:fadeUp 1s ease .4s both}
+        .btn-primary{padding:14px 28px;background:var(--white);color:var(--black);border:none;border-radius:980px;font-family:'Geist',sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:all .25s;display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+        .btn-primary:hover{background:var(--off-white);transform:scale(1.03);box-shadow:0 0 40px rgba(255,255,255,.2)}
+        .btn-ghost{padding:13px 28px;background:transparent;color:var(--text);border:1px solid var(--border-bright);border-radius:980px;font-family:'Geist',sans-serif;font-size:15px;font-weight:400;cursor:pointer;transition:all .25s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+        .btn-ghost:hover{border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.06);color:var(--white)}
+        .btn-arrow{transition:transform .2s}
+        .btn-primary:hover .btn-arrow,.btn-ghost:hover .btn-arrow{transform:translateX(3px)}
+        .hero-scroll-hint{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;animation:fadeUp 1.2s ease .8s both}
+        .scroll-line{width:1px;height:60px;background:linear-gradient(to bottom,transparent,var(--muted));animation:scrollLine 2s ease-in-out infinite}
+        @keyframes scrollLine{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}51%{transform:scaleY(1);transform-origin:bottom}100%{transform:scaleY(0);transform-origin:bottom}}
+        .scroll-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+
+        /* TICKER */
+        .ticker-strip{overflow:hidden;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--off-black)}
+        .ticker-track{display:flex;white-space:nowrap;animation:tickerScroll 28s linear infinite}
+        .ticker-track:hover{animation-play-state:paused}
+        .t-item{display:flex;align-items:center;gap:10px;padding:0 28px;border-right:1px solid var(--border);font-family:'Geist Mono',monospace;font-size:12px}
+        .t-sym{color:var(--white);font-weight:500}.t-px{color:var(--muted)}.t-up{color:var(--green)}.t-dn{color:var(--red)}
+        @keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+        /* SECTION SHARED */
+        section{position:relative;overflow:hidden}
+        .section-label{font-size:12px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;display:block}
+        .section-heading{font-family:'Bebas Neue',sans-serif;font-size:clamp(48px,8vw,96px);letter-spacing:.02em;line-height:.92;color:var(--white)}
+        .section-heading em{font-family:'Instrument Serif',serif;font-style:italic;color:var(--muted)}
+        .section-body{font-size:clamp(16px,2vw,19px);font-weight:300;color:var(--muted);line-height:1.65;max-width:520px}
+
+        /* reveal */
+        .reveal{opacity:0;transform:translateY(40px);transition:opacity .8s ease,transform .8s ease}
+        .reveal.visible{opacity:1;transform:translateY(0)}
+        .reveal-left{opacity:0;transform:translateX(-40px);transition:opacity .8s ease,transform .8s ease}
+        .reveal-left.visible{opacity:1;transform:translateX(0)}
+        .reveal-right{opacity:0;transform:translateX(40px);transition:opacity .8s ease,transform .8s ease}
+        .reveal-right.visible{opacity:1;transform:translateX(0)}
+        .reveal-scale{opacity:0;transform:scale(.94);transition:opacity .7s ease,transform .7s ease}
+        .reveal-scale.visible{opacity:1;transform:scale(1)}
+        [data-delay="1"]{transition-delay:.1s}[data-delay="2"]{transition-delay:.2s}[data-delay="3"]{transition-delay:.3s}[data-delay="4"]{transition-delay:.4s}[data-delay="5"]{transition-delay:.5s}[data-delay="6"]{transition-delay:.6s}
+
+        /* STATS */
+        .stats-section{padding:120px 24px;background:var(--off-black)}
+        .stats-inner{max-width:1100px;margin:0 auto}
+        .stats-top{display:flex;align-items:flex-end;justify-content:space-between;gap:40px;margin-bottom:80px;flex-wrap:wrap}
+        .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+        .stat-card{background:var(--panel);padding:36px 32px;position:relative;overflow:hidden;transition:background .3s}
+        .stat-card:hover{background:var(--panel2)}
+        .stat-card::before{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--s-color,rgba(255,255,255,.2)),transparent)}
+        .stat-lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:14px;font-weight:400}
+        .stat-num{font-family:'Geist Mono',monospace;font-size:clamp(28px,4vw,44px);font-weight:300;color:var(--white);line-height:1;margin-bottom:8px;letter-spacing:-.02em}
+        .stat-change{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-family:'Geist Mono',monospace;font-weight:400;padding:3px 10px;border-radius:6px}
+        .stat-change.up{background:var(--green-dim);color:var(--green)}.stat-change.dn{background:var(--red-dim);color:var(--red)}.stat-change.neu{background:var(--blue-dim);color:var(--blue)}
+
+        /* FEATURE */
+        .feature-section{padding:140px 24px;display:flex;align-items:center;justify-content:center}
+        .feature-inner{max-width:1100px;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center}
+        .feature-inner.flip{direction:rtl}
+        .feature-inner.flip>*{direction:ltr}
+        .feature-text{display:flex;flex-direction:column;gap:24px}
+        .feature-visual{border-radius:var(--radius);background:var(--panel);border:1px solid var(--border);overflow:hidden;position:relative}
+        .feature-visual::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.04) 0%,transparent 60%);z-index:1;pointer-events:none;border-radius:var(--radius)}
+        .parallax-wrap{position:relative;overflow:hidden}
+        .parallax-inner{will-change:transform}
+        .mini-card{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:14px;padding:18px 20px;backdrop-filter:blur(20px);transition:transform .3s ease,border-color .3s}
+        .mini-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.2)}
+        .mini-card-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+        .mini-card-val{font-family:'Geist Mono',monospace;font-size:22px;font-weight:300;color:var(--white);margin-bottom:4px}
+        .mini-card-sub{font-size:11px;color:var(--muted)}
+        .w-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+        .w-row:last-child{border-bottom:none}
+        .w-sym{font-family:'Geist Mono',monospace;font-size:11px;font-weight:500;color:var(--text);width:50px}
+        .w-bg{flex:1;height:3px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+        .w-fill{height:100%;border-radius:99px;transition:width 1s cubic-bezier(.34,1.56,.64,1)}
+        .w-pct{font-family:'Geist Mono',monospace;font-size:10px;color:var(--muted);width:36px;text-align:right}
+
+        /* EVENTS */
+        .events-section{padding:100px 0;background:var(--off-black);overflow:hidden}
+        .events-head{padding:0 24px;max-width:1100px;margin:0 auto 56px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:20px}
+        .events-marquee-outer{overflow:hidden;position:relative}
+        .events-marquee-outer::before,.events-marquee-outer::after{content:'';position:absolute;top:0;bottom:0;width:120px;z-index:2;pointer-events:none}
+        .events-marquee-outer::before{left:0;background:linear-gradient(to right,var(--off-black),transparent)}
+        .events-marquee-outer::after{right:0;background:linear-gradient(to left,var(--off-black),transparent)}
+        .events-track{display:flex;gap:14px;animation:evScroll 35s linear infinite;width:max-content;padding:4px 14px}
+        .events-track:hover{animation-play-state:paused}
+        .ev-card{width:300px;flex-shrink:0;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+        .ev-card:hover{border-color:rgba(255,255,255,.2);transform:translateY(-4px);background:var(--panel2)}
+        .ev-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ev-col,rgba(255,255,255,.2))}
+        .ev-headline{font-size:13px;font-weight:400;color:var(--text);line-height:1.5;margin-bottom:14px}
+        .ev-foot{display:flex;align-items:center;justify-content:space-between}
+        .ev-time{font-size:10px;color:var(--faint);font-family:'Geist Mono',monospace}
+        .ev-impact{font-family:'Geist Mono',monospace;font-size:12px;font-weight:500}
+        @keyframes evScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+        .events-track.rev{animation-direction:reverse;animation-duration:40s}
+
+        /* APP PREVIEW */
+        .app-section{padding:120px 24px 0;background:var(--off-black);overflow:hidden}
+        .app-section-inner{max-width:1100px;margin:0 auto}
+        .app-preview{margin-top:72px;border-radius:var(--radius) var(--radius) 0 0;background:var(--panel);border:1px solid var(--border);border-bottom:none;overflow:hidden;position:relative}
+        .app-chrome{height:28px;background:var(--panel2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:8px}
+        .chrome-dot{width:10px;height:10px;border-radius:50%}
+        .app-layout{display:flex;height:520px}
+        .app-sidebar{width:200px;flex-shrink:0;border-right:1px solid var(--border);padding:16px 12px;display:flex;flex-direction:column;gap:4px}
+        .app-logo{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.06em;color:var(--white);padding:8px 10px 14px;margin-bottom:4px}
+        .sb-item{padding:8px 10px;border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
+        .sb-item:hover{background:rgba(255,255,255,.06);color:var(--white)}
+        .sb-item.on{background:rgba(255,255,255,.08);color:var(--white)}
+        .app-main{flex:1;overflow:hidden;padding:20px;display:flex;flex-direction:column;gap:14px}
+        .app-stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+        .app-stat{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px}
+        .app-stat-lbl{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+        .app-stat-num{font-family:'Geist Mono',monospace;font-size:18px;font-weight:300;color:var(--white)}
+        .app-chart-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1;min-height:0}
+        .app-chart-card{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px;overflow:hidden}
+        .app-chart-label{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+        .app-chart-inner{height:150px;position:relative}
+
+        /* SHOWCASE */
+        .showcase-section{padding:120px 24px;background:var(--black)}
+        .showcase-inner{max-width:1100px;margin:0 auto}
+        .showcase-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:72px}
+        .showcase-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:32px;overflow:hidden;position:relative;transition:all .3s;cursor:pointer}
+        .showcase-card:hover{border-color:rgba(255,255,255,.2);transform:translateY(-6px);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+        .showcase-card.tall{grid-row:span 2}
+        .showcase-card::before{content:'';position:absolute;inset:0;border-radius:var(--radius);background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent);pointer-events:none}
+        .sc-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:24px}
+        .sc-title{font-size:18px;font-weight:500;color:var(--white);margin-bottom:8px;letter-spacing:-.01em}
+        .sc-desc{font-size:14px;color:var(--muted);line-height:1.6;font-weight:300}
+        .sc-footer{margin-top:28px;padding-top:20px;border-top:1px solid var(--border);font-size:12px;color:var(--faint)}
+
+        /* STATEMENT */
+        .statement-section{padding:180px 24px;text-align:center;background:linear-gradient(180deg,var(--black) 0%,var(--off-black) 50%,var(--black) 100%);position:relative;overflow:hidden}
+        .statement-bg{position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse 70% 50% at 50% 50%,rgba(255,255,255,.03),transparent);animation:statementPulse 6s ease-in-out infinite}
+        @keyframes statementPulse{0%,100%{opacity:.6}50%{opacity:1}}
+        .statement-text{position:relative;z-index:2;font-family:'Bebas Neue',sans-serif;font-size:clamp(48px,10vw,120px);letter-spacing:.01em;line-height:.9;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.2);max-width:1000px;margin:0 auto}
+        .statement-text span{display:block;-webkit-text-stroke:0;color:var(--white);transition:all .4s}
+        .statement-em{font-family:'Instrument Serif',serif;font-style:italic;font-size:1.05em;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.4)}
+
+        /* FOOTER */
+        .footer{padding:80px 24px;background:var(--off-black);border-top:1px solid var(--border)}
+        .footer-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:60px}
+        .footer-brand{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.06em;color:var(--white);margin-bottom:12px}
+        .footer-tagline{font-size:13px;color:var(--muted);line-height:1.6;font-weight:300}
+        .footer-col-title{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:16px}
+        .footer-links{display:flex;flex-direction:column;gap:10px}
+        .footer-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s;font-weight:300}
+        .footer-links a:hover{color:var(--white)}
+        .footer-bottom{max-width:1100px;margin:48px auto 0;padding-top:28px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+        .footer-copy{font-size:12px;color:var(--faint)}
+
+        /* SPIN */
+        .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.15);border-top-color:rgba(0,0,0,.7);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+        .spin.light{border-color:rgba(255,255,255,.15);border-top-color:var(--white)}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        @media(max-width:1024px){
+          .feature-inner{grid-template-columns:1fr;gap:48px}.feature-inner.flip{direction:ltr}
+          .showcase-grid{grid-template-columns:repeat(2,1fr)}.showcase-card.tall{grid-row:auto}
+          .footer-inner{grid-template-columns:1fr 1fr;gap:40px}
+        }
+        @media(max-width:768px){
+          .nav-links,.nav-cta{display:none}.nav-burger{display:flex}
+          .stats-grid{grid-template-columns:repeat(2,1fr)}
+          .app-layout{height:auto;flex-direction:column}
+          .app-sidebar{width:100%;flex-direction:row;flex-wrap:wrap;padding:10px;height:auto;border-right:none;border-bottom:1px solid var(--border)}
+          .app-stat-row{grid-template-columns:repeat(2,1fr)}.app-chart-row{grid-template-columns:1fr}
+          .showcase-grid{grid-template-columns:1fr}.footer-inner{grid-template-columns:1fr}
+          .hero-actions{flex-direction:column;align-items:stretch}.btn-primary,.btn-ghost{justify-content:center}
+        }
+        @media(max-width:480px){.stats-grid{grid-template-columns:1fr}.stat-card{padding:24px 20px}}
+    </style>
+</head>
+<body>
+
+<div class="cursor" id="cursor">
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+</div>
+
+<nav class="nav" id="mainNav">
+    <a class="nav-logo" href="index.html">RIPPLEWEALTH</a>
+    <ul class="nav-links">
+        <li><a href="#stats">Overview</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#events">Events</a></li>
+        <li><a href="login.html">Sign in</a></li>
+    </ul>
+    <a class="nav-cta" href="login.html">Get started</a>
+    <div class="nav-burger" id="burger" onclick="toggleDrawer()">
+        <span></span><span></span><span></span>
+    </div>
+</nav>
+
+<div class="nav-drawer" id="drawer">
+    <a href="#stats" onclick="closeDrawer()">Overview</a>
+    <a href="#features" onclick="closeDrawer()">Features</a>
+    <a href="#events" onclick="closeDrawer()">Events</a>
+    <a href="login.html" onclick="closeDrawer()">Sign in</a>
+    <a class="nav-cta" href="login.html">Get started</a>
+</div>
+
+<!-- HERO -->
+<section class="hero parallax-wrap" id="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-glow parallax-inner" data-speed="-0.15"></div>
+    <div class="hero-content">
+        <div class="hero-eyebrow">Portfolio intelligence · AI-powered</div>
+        <h1 class="hero-h1">Invest with<br><em>Intelligence</em></h1>
+        <h2 class="hero-h2">Not Instinct.</h2>
+        <p class="hero-sub">RippleWealth gives you institutional-grade portfolio analytics, real-time risk metrics, and AI-driven insights — all in one elegant platform.</p>
+        <div class="hero-actions">
+            <a class="btn-primary" href="login.html">Start free today <span class="btn-arrow">→</span></a>
+            <a class="btn-ghost" href="#stats">See how it works <span class="btn-arrow">↓</span></a>
+        </div>
+    </div>
+    <div class="hero-scroll-hint">
+        <div class="scroll-line"></div>
+        <span class="scroll-label">Scroll</span>
+    </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-strip">
+    <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<!-- STATS -->
+<section class="stats-section" id="stats">
+    <div class="stats-inner">
+        <div class="stats-top">
+            <div class="reveal">
+                <span class="section-label">Why RippleWealth</span>
+                <h2 class="section-heading">The numbers<br><em>speak.</em></h2>
+            </div>
+            <p class="section-body reveal reveal-right" data-delay="2">Built for serious investors who demand accuracy, speed, and clarity. Our platform processes live market data to deliver insights that matter.</p>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card reveal" data-delay="1" style="--s-color:rgba(48,209,88,.4)">
+                <div class="stat-lbl">Assets analysed daily</div>
+                <div class="stat-num" data-count="12400">0</div>
+                <div class="stat-change up">↑ +8.2% this month</div>
+            </div>
+            <div class="stat-card reveal" data-delay="2" style="--s-color:rgba(10,132,255,.4)">
+                <div class="stat-lbl">Avg Sharpe improvement</div>
+                <div class="stat-num" data-count-dec="1.4">0.0</div>
+                <div class="stat-change up">↑ vs unoptimised</div>
+            </div>
+            <div class="stat-card reveal" data-delay="3" style="--s-color:rgba(255,214,10,.4)">
+                <div class="stat-lbl">Risk events detected</div>
+                <div class="stat-num" data-count="3200">0</div>
+                <div class="stat-change neu">Live feed</div>
+            </div>
+            <div class="stat-card reveal" data-delay="4" style="--s-color:rgba(255,69,58,.4)">
+                <div class="stat-lbl">VaR accuracy rate</div>
+                <div class="stat-num" data-count-pct="94.7">0%</div>
+                <div class="stat-change up">↑ 95th percentile</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURE 1 -->
+<section class="feature-section">
+    <div class="feature-inner">
+        <div class="feature-text reveal-left">
+            <span class="section-label">Risk engine</span>
+            <h2 class="section-heading">Know your<br><em>exposure.</em></h2>
+            <p class="section-body">Real-time Sharpe ratio, Value at Risk, and volatility metrics computed from 1-year price history. Understand exactly how much risk you're carrying — before the market tells you.</p>
+            <a class="btn-ghost" href="dashboard.html" style="width:fit-content">Explore analysis <span class="btn-arrow">→</span></a>
+        </div>
+        <div class="feature-visual reveal-right" data-delay="2">
+            <div style="padding:28px;display:flex;flex-direction:column;gap:14px">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                    <div class="mini-card" style="--m-col:var(--red)"><div class="mini-card-label">Sharpe Ratio</div><div class="mini-card-val" style="color:var(--red)">−0.98</div><div class="mini-card-sub">Weak risk-adjusted return</div></div>
+                    <div class="mini-card"><div class="mini-card-label">Value at Risk</div><div class="mini-card-val" style="color:var(--red)">−2.09%</div><div class="mini-card-sub">Daily 95% confidence</div></div>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-card-label">Optimised allocation</div>
+                    <div style="margin-top:4px">
+                        <div class="w-row"><div class="w-sym">MSFT</div><div class="w-bg"><div class="w-fill" style="width:42%;background:var(--blue)"></div></div><div class="w-pct">42%</div></div>
+                        <div class="w-row"><div class="w-sym">AAPL</div><div class="w-bg"><div class="w-fill" style="width:31%;background:var(--green)"></div></div><div class="w-pct">31%</div></div>
+                        <div class="w-row"><div class="w-sym">NVDA</div><div class="w-bg"><div class="w-fill" style="width:27%;background:var(--gold)"></div></div><div class="w-pct">27%</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- EVENTS -->
+<section class="events-section" id="events">
+    <div class="events-head">
+        <div class="reveal">
+            <span class="section-label">Live events feed</span>
+            <h2 class="section-heading" style="font-size:clamp(40px,6vw,72px)">Markets move.<br><em>Stay ahead.</em></h2>
+        </div>
+        <div class="reveal reveal-right" data-delay="2">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:980px;background:rgba(48,209,88,.08);border:1px solid rgba(48,209,88,.2)">
+                <div style="width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite"></div>
+                <span style="font-size:12px;color:var(--green);font-weight:500">Real-time</span>
+            </div>
+        </div>
+    </div>
+    <div class="events-marquee-outer"><div class="events-track" id="evRow1"></div></div>
+    <div style="height:14px"></div>
+    <div class="events-marquee-outer"><div class="events-track rev" id="evRow2"></div></div>
+</section>
+
+<!-- FEATURE 2 -->
+<section class="feature-section" style="background:var(--off-black)">
+    <div class="feature-inner flip">
+        <div class="feature-text reveal-right">
+            <span class="section-label">Scenario engine</span>
+            <h2 class="section-heading">Stress-test<br><em>everything.</em></h2>
+            <p class="section-body">Run crash, inflation, and bull-market scenarios against your portfolio in seconds. See how your allocation holds up before markets move against you.</p>
+            <a class="btn-ghost" href="dashboard.html" style="width:fit-content">Run simulation <span class="btn-arrow">→</span></a>
+        </div>
+        <div class="feature-visual reveal-left" data-delay="2">
+            <div style="padding:28px">
+                <div style="font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin-bottom:18px">Market crash scenario · −20%</div>
+                <div style="display:flex;align-items:flex-end;gap:6px;height:80px;margin-bottom:18px">
+                    <div style="flex:1;background:var(--red);border-radius:4px 4px 0 0;height:90%;opacity:.9"></div>
+                    <div style="flex:1;background:var(--red);border-radius:4px 4px 0 0;height:74%;opacity:.75"></div>
+                    <div style="flex:1;background:var(--red);border-radius:4px 4px 0 0;height:60%;opacity:.6"></div>
+                    <div style="flex:1;background:var(--red);border-radius:4px 4px 0 0;height:50%;opacity:.5"></div>
+                    <div style="flex:1;background:var(--red);border-radius:4px 4px 0 0;height:40%;opacity:.4"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+                    <div class="mini-card"><div class="mini-card-label">Impact</div><div class="mini-card-val" style="color:var(--red);font-size:18px">−20%</div></div>
+                    <div class="mini-card"><div class="mini-card-label">Base</div><div class="mini-card-val" style="font-size:18px">100</div></div>
+                    <div class="mini-card"><div class="mini-card-label">Final</div><div class="mini-card-val" style="color:var(--red);font-size:18px">80.0</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- APP PREVIEW -->
+<section class="app-section">
+    <div class="app-section-inner">
+        <span class="section-label reveal">The platform</span>
+        <h2 class="section-heading reveal" data-delay="1">Your entire portfolio.<br><em>One view.</em></h2>
+        <div class="app-preview reveal-scale" data-delay="2">
+            <div class="app-chrome">
+                <div class="chrome-dot" style="background:#ff5f57"></div>
+                <div class="chrome-dot" style="background:#ffbd2e"></div>
+                <div class="chrome-dot" style="background:#28c840"></div>
+            </div>
+            <div class="app-layout">
+                <div class="app-sidebar">
+                    <div class="app-logo">RW</div>
+                    <div class="sb-item on"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="5" height="5" rx="1"/><rect x="8" y="1" width="5" height="5" rx="1"/><rect x="1" y="8" width="5" height="5" rx="1"/><rect x="8" y="8" width="5" height="5" rx="1"/></svg>Dashboard</div>
+                    <div class="sb-item"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 10l3-4 2.5 2 3.5-5L13 6"/></svg>Portfolio</div>
+                    <div class="sb-item"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="5"/><polyline points="7,4 7,7 9,8.5"/></svg>Simulate</div>
+                    <div class="sb-item"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1.5 2.5h11a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5H4l-2.5 1.5V3a.5.5 0 0 1 .5-.5z"/></svg>AI Agent</div>
+                </div>
+                <div class="app-main">
+                    <div class="app-stat-row">
+                        <div class="app-stat"><div class="app-stat-lbl">Assets</div><div class="app-stat-num">3</div></div>
+                        <div class="app-stat"><div class="app-stat-lbl">Sharpe</div><div class="app-stat-num" style="color:var(--red)">−0.98</div></div>
+                        <div class="app-stat"><div class="app-stat-lbl">VaR</div><div class="app-stat-num" style="color:var(--red)">−2.09%</div></div>
+                        <div class="app-stat"><div class="app-stat-lbl">Top</div><div class="app-stat-num" style="color:var(--gold)">NVDA</div></div>
+                    </div>
+                    <div class="app-chart-row">
+                        <div class="app-chart-card"><div class="app-chart-label">Allocation</div><div class="app-chart-inner"><canvas id="appDonut"></canvas></div></div>
+                        <div class="app-chart-card">
+                            <div class="app-chart-label">Portfolio breakdown</div>
+                            <div style="margin-top:8px">
+                                <div class="w-row"><div class="w-sym" style="font-size:10px">NVDA</div><div class="w-bg"><div class="w-fill" style="width:39%;background:var(--gold)"></div></div><div class="w-pct">38.8%</div></div>
+                                <div class="w-row"><div class="w-sym" style="font-size:10px">AAPL</div><div class="w-bg"><div class="w-fill" style="width:31%;background:var(--green)"></div></div><div class="w-pct">30.8%</div></div>
+                                <div class="w-row"><div class="w-sym" style="font-size:10px">MSFT</div><div class="w-bg"><div class="w-fill" style="width:30%;background:var(--blue)"></div></div><div class="w-pct">30.4%</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- SHOWCASE -->
+<section class="showcase-section" id="features">
+    <div class="showcase-inner">
+        <span class="section-label reveal">Everything you need</span>
+        <h2 class="section-heading reveal" data-delay="1">Built for<br><em>serious</em> investors.</h2>
+        <div class="showcase-grid">
+            <div class="showcase-card reveal" data-delay="1"><div class="sc-icon" style="background:var(--green-dim)">📊</div><div class="sc-title">Real-time risk metrics</div><div class="sc-desc">Sharpe ratio, VaR, and volatility computed live from Yahoo Finance price data. No delays, no guessing.</div><div class="sc-footer">Updated on every analysis run</div></div>
+            <div class="showcase-card reveal tall" data-delay="2">
+                <div class="sc-icon" style="background:var(--blue-dim)">🤖</div>
+                <div class="sc-title">AI portfolio advisor</div>
+                <div class="sc-desc">Ask anything. Get institutional-quality answers about your specific holdings, allocation strategy, and risk exposure.</div>
+                <div style="margin-top:24px;padding:16px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid var(--border)">
+                    <div style="font-size:12px;color:var(--muted);margin-bottom:8px;padding:10px 14px;background:var(--off-black);border-radius:8px;line-height:1.5">"Your portfolio is 100% US large-cap tech. True diversification requires international equities, fixed income, and alternatives."</div>
+                    <div style="font-size:10px;color:var(--faint)">AI Advisor response</div>
+                </div>
+                <div class="sc-footer">Powered by multi-agent AI architecture</div>
+            </div>
+            <div class="showcase-card reveal" data-delay="3"><div class="sc-icon" style="background:var(--red-dim)">⚡</div><div class="sc-title">Live events feed</div><div class="sc-desc">Earnings, Fed decisions, macro data — categorised and impact-rated as they happen.</div><div class="sc-footer">Real-time market intelligence</div></div>
+            <div class="showcase-card reveal" data-delay="4"><div class="sc-icon" style="background:var(--gold-dim)">🎯</div><div class="sc-title">Scenario simulation</div><div class="sc-desc">Stress-test against inflation shocks, market crashes, and bull runs. See projected portfolio values across 5 time steps.</div><div class="sc-footer">3 macro scenarios · instant results</div></div>
+            <div class="showcase-card reveal" data-delay="5"><div class="sc-icon" style="background:rgba(167,139,250,.15)">🔒</div><div class="sc-title">Secure by design</div><div class="sc-desc">Your portfolio data stays yours. Backed by SQLite with user-level isolation and secure authentication.</div><div class="sc-footer">FastAPI + SQLAlchemy backend</div></div>
+        </div>
+    </div>
+</section>
+
+<!-- STATEMENT -->
+<section class="statement-section">
+    <div class="statement-bg"></div>
+    <div class="statement-text reveal-scale">
+        <span>The market</span>
+        <span class="statement-em">doesn't wait.</span>
+        <span>Neither should</span>
+        <span style="-webkit-text-stroke:0;color:var(--white)">your decisions.</span>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="footer-inner">
+        <div>
+            <div class="footer-brand">RIPPLEWEALTH</div>
+            <div class="footer-tagline">Portfolio intelligence for the modern investor. Real-time risk analytics, AI-powered insights, and scenario simulation — all in one platform.</div>
+        </div>
+        <div>
+            <div class="footer-col-title">Product</div>
+            <div class="footer-links">
+                <a href="dashboard.html">Portfolio</a>
+                <a href="dashboard.html">Analysis</a>
+                <a href="dashboard.html">Simulate</a>
+                <a href="dashboard.html">AI Advisor</a>
+            </div>
+        </div>
+        <div>
+            <div class="footer-col-title">Technology</div>
+            <div class="footer-links">
+                <a href="#">FastAPI Backend</a>
+                <a href="#">AI Agent Layer</a>
+                <a href="#">yfinance Data</a>
+                <a href="#">React Frontend</a>
+            </div>
+        </div>
+        <div>
+            <div class="footer-col-title">Get started</div>
+            <div class="footer-links">
+                <a href="login.html">Sign in</a>
+                <a href="login.html">Register</a>
+                <a href="#">Documentation</a>
+                <a href="#">API Reference</a>
+            </div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <span class="footer-copy">© 2025 RippleWealth. All rights reserved.</span>
+        <span class="footer-copy">Built with FastAPI · Chart.js · yfinance</span>
+    </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+    // CURSOR
+    const dot=document.getElementById('cursorDot'),ring=document.getElementById('cursorRing'),cursor=document.getElementById('cursor');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;dot.style.left=mx+'px';dot.style.top=my+'px';});
+    (function animRing(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animRing);})();
+    document.querySelectorAll('a,button,.chip,.ev-card,.showcase-card,.mini-card').forEach(el=>{el.addEventListener('mouseenter',()=>document.body.classList.add('hovering'));el.addEventListener('mouseleave',()=>document.body.classList.remove('hovering'));});
+    if('ontouchstart' in window)cursor.style.display='none';
+
+    // NAV
+    window.addEventListener('scroll',()=>{document.getElementById('mainNav').classList.toggle('scrolled',window.scrollY>40);},{passive:true});
+    function toggleDrawer(){document.getElementById('drawer').classList.toggle('open')}
+    function closeDrawer(){document.getElementById('drawer').classList.remove('open')}
+
+    // TICKER
+    const TAPES=[{s:'AAPL',p:'218.34',c:'+1.21%',up:true},{s:'MSFT',p:'425.10',c:'+0.82%',up:true},{s:'NVDA',p:'875.22',c:'+3.14%',up:true},{s:'TSLA',p:'193.57',c:'−2.44%',up:false},{s:'AMZN',p:'198.44',c:'+0.52%',up:true},{s:'GOOGL',p:'172.22',c:'−0.31%',up:false},{s:'META',p:'518.90',c:'+1.72%',up:true},{s:'JPM',p:'224.41',c:'+0.38%',up:true},{s:'SPY',p:'552.30',c:'+0.61%',up:true},{s:'QQQ',p:'472.18',c:'+0.91%',up:true},{s:'GLD',p:'235.80',c:'+0.22%',up:true},{s:'BTC',p:'67,420',c:'−1.80%',up:false}];
+    document.getElementById('tickerTrack').innerHTML=[...TAPES,...TAPES].map(t=>`<div class="t-item"><span class="t-sym">${t.s}</span><span class="t-px">${t.p}</span><span class="${t.up?'t-up':'t-dn'}">${t.c}</span></div>`).join('');
+
+    // EVENTS
+    const EVENTS=[{cat:'Earnings',col:'rgba(255,214,10,.5)',headline:'NVDA Q4 EPS $5.16, beats estimates by 8.2%. Data center +409% YoY.',impact:'+4.2%',pos:true,t:'2m ago'},{cat:'Fed',col:'rgba(255,69,58,.5)',headline:'Fed Chair: No rate cuts before June amid sticky inflation data.',impact:'−1.1%',pos:false,t:'7m ago'},{cat:'Macro',col:'rgba(6,182,212,.5)',headline:'US CPI rises 3.2% YoY in January. Core at 3.9%, above consensus.',impact:'−0.8%',pos:false,t:'15m ago'},{cat:'Earnings',col:'rgba(255,214,10,.5)',headline:'MSFT Azure growth accelerates to 28%. AI Copilot hits 1.3M paying seats.',impact:'+2.9%',pos:true,t:'22m ago'},{cat:'Sector',col:'rgba(48,209,88,.5)',headline:'Tech sector outperforms S&P 500 by 340bps this week.',impact:'+3.4%',pos:true,t:'35m ago'},{cat:'Geopolitics',col:'rgba(255,69,58,.5)',headline:'US-China tech export restrictions expand to cover AI chips.',impact:'−1.4%',pos:false,t:'48m ago'},{cat:'Macro',col:'rgba(6,182,212,.5)',headline:'US jobs: 256K added in December. Unemployment falls to 4.1%.',impact:'+0.4%',pos:true,t:'1h ago'},{cat:'Crypto',col:'rgba(139,92,246,.5)',headline:'Bitcoin ETF sees $500M daily inflow. BTC tests $68K resistance.',impact:'Neutral',pos:null,t:'1h ago'},{cat:'Fed',col:'rgba(255,69,58,.5)',headline:'Fed minutes: Officials cautious about premature easing cycle.',impact:'−0.5%',pos:false,t:'2h ago'},{cat:'Earnings',col:'rgba(255,214,10,.5)',headline:'AAPL iPhone 16 cycle beats expectations. Services revenue +14%.',impact:'+1.8%',pos:true,t:'2h ago'}];
+    function makeCard(ev){const col=ev.pos===true?'var(--green)':ev.pos===false?'var(--red)':'var(--muted)';return`<div class="ev-card" style="--ev-col:${ev.col}"><div style="display:inline-block;font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:3px 10px;border-radius:6px;background:rgba(255,255,255,.07);color:var(--muted);margin-bottom:12px">${ev.cat}</div><div class="ev-headline">${ev.headline}</div><div class="ev-foot"><span class="ev-time">${ev.t}</span><span class="ev-impact" style="color:${col}">${ev.impact}</span></div></div>`;}
+    document.getElementById('evRow1').innerHTML=[...EVENTS,...EVENTS].map(makeCard).join('');
+    document.getElementById('evRow2').innerHTML=[...EVENTS].reverse().concat([...EVENTS].reverse()).map(makeCard).join('');
+
+    // PARALLAX
+    const pEls=document.querySelectorAll('.parallax-inner[data-speed]');
+    window.addEventListener('scroll',()=>{const sy=window.scrollY;pEls.forEach(el=>{el.style.transform=`translateY(${sy*parseFloat(el.dataset.speed||'-0.2')}px)`;});},{passive:true});
+
+    // REVEALS
+    const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+    document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.reveal-scale').forEach(el=>obs.observe(el));
+
+    // COUNTER
+    function animCount(el){
+      const target=parseFloat(el.dataset.count||el.dataset.countDec||el.dataset.countPct||0);
+      const isDec=!!el.dataset.countDec,isPct=!!el.dataset.countPct;
+      const dur=1800,start=performance.now();
+      function step(now){
+        const p=Math.min((now-start)/dur,1);
+        const ease=1-Math.pow(1-p,3);
+        const val=target*ease;
+        el.textContent=isDec?val.toFixed(1):isPct?val.toFixed(1)+'%':Math.round(val).toLocaleString();
+        if(p<1)requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+    const counterObs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){animCount(e.target);counterObs.unobserve(e.target);}});},{threshold:.5});
+    document.querySelectorAll('[data-count],[data-count-dec],[data-count-pct]').forEach(el=>counterObs.observe(el));
+
+    // DONUT CHART
+    window.addEventListener('load',()=>{
+      const ctx=document.getElementById('appDonut');
+      if(ctx){new Chart(ctx,{type:'doughnut',data:{labels:['NVDA','AAPL','MSFT'],datasets:[{data:[38.8,30.8,30.4],backgroundColor:['#ffd60a','#30d158','#0a84ff'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(0,0,0,.85)',titleColor:'#fff',bodyColor:'rgba(255,255,255,.6)',borderColor:'rgba(255,255,255,.1)',borderWidth:1,padding:10}}}});}
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <title>RippleWealth — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Geist:wght@200;300;400;500;600&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{
+          --black:#000;--off-black:#080808;--panel:#111;--panel2:#161616;
+          --border:rgba(255,255,255,0.1);--border-bright:rgba(255,255,255,0.2);
+          --white:#fff;--off-white:#f5f5f7;--text:#e8e8ed;--muted:#86868b;
+          --faint:#48484a;--green:#30d158;--green-dim:rgba(48,209,88,0.15);
+          --red:#ff453a;--red-dim:rgba(255,69,58,0.15);--blue:#0a84ff;
+          --blue-dim:rgba(10,132,255,0.12);--gold:#ffd60a;--gold-dim:rgba(255,214,10,0.12);
+          --radius:18px;--nav-h:48px;
+        }
+        html{scroll-behavior:smooth;font-size:16px}
+        body{background:var(--black);color:var(--text);font-family:'Geist',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;cursor:none}
+
+        /* CURSOR */
+        .cursor{position:fixed;z-index:99999;pointer-events:none;mix-blend-mode:difference}
+        .cursor-dot{width:8px;height:8px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);transition:transform .08s ease,width .25s ease,height .25s ease;position:absolute}
+        .cursor-ring{width:36px;height:36px;border-radius:50%;border:1.5px solid rgba(255,255,255,.6);transform:translate(-50%,-50%);position:absolute;transition:transform .18s ease,width .3s ease,height .3s ease,opacity .3s ease}
+        body.hovering .cursor-dot{width:4px;height:4px}
+        body.hovering .cursor-ring{width:54px;height:54px;opacity:.5}
+
+        /* NAV */
+        .nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:var(--nav-h);display:flex;align-items:center;padding:0 22px;background:rgba(0,0,0,.72);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(255,255,255,.08)}
+        .nav-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.06em;color:var(--white);margin-right:auto;cursor:pointer;text-decoration:none}
+        .nav-links{display:flex;align-items:center;gap:28px;list-style:none}
+        .nav-links a{font-size:13px;font-weight:400;color:var(--muted);text-decoration:none;transition:color .2s;letter-spacing:.01em}
+        .nav-links a:hover,.nav-links a.active{color:var(--white)}
+        .nav-user{margin-left:28px;display:flex;align-items:center;gap:12px}
+        .nav-username{font-size:13px;color:var(--muted)}
+        .nav-signout{padding:7px 18px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:980px;font-family:'Geist',sans-serif;font-size:13px;font-weight:400;cursor:pointer;transition:all .2s;text-decoration:none;display:inline-flex;align-items:center}
+        .nav-signout:hover{border-color:rgba(255,255,255,.3);color:var(--white)}
+        .nav-burger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
+        .nav-burger span{width:22px;height:1.5px;background:var(--white);transition:all .3s;display:block}
+        .nav-drawer{position:fixed;top:var(--nav-h);left:0;right:0;z-index:999;background:rgba(0,0,0,.96);backdrop-filter:blur(30px);padding:24px 22px 32px;display:flex;flex-direction:column;gap:0;transform:translateY(-110%);transition:transform .4s cubic-bezier(.4,0,.2,1);border-bottom:1px solid var(--border)}
+        .nav-drawer.open{transform:translateY(0)}
+        .nav-drawer a{padding:16px 0;font-size:18px;font-weight:400;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);display:block;transition:color .2s}
+        .nav-drawer a:hover{color:var(--white)}
+
+        /* PAGE */
+        .page-wrap{padding-top:var(--nav-h)}
+
+        /* DASHBOARD HERO */
+        .dash-hero{
+          padding:64px 24px 48px;
+          background:var(--off-black);
+          border-bottom:1px solid var(--border);
+          position:relative;overflow:hidden;
+        }
+        .dash-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 50%,rgba(255,255,255,.025),transparent);pointer-events:none}
+        .dash-inner{max-width:1100px;margin:0 auto;position:relative;z-index:1}
+        .dash-greeting{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+        .dash-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(48px,6vw,80px);letter-spacing:.02em;line-height:.92;color:var(--white);margin-bottom:20px}
+        .dash-title em{font-family:'Instrument Serif',serif;font-style:italic;color:var(--muted)}
+        .dash-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:40px}
+        .kpi{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px 22px;transition:border-color .25s}
+        .kpi:hover{border-color:rgba(255,255,255,.2)}
+        .kpi-lbl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+        .kpi-val{font-family:'Geist Mono',monospace;font-size:26px;font-weight:300;color:var(--white);line-height:1}
+        .kpi-sub{font-size:11px;color:var(--muted);margin-top:6px}
+
+        /* SECTION SHARED */
+        section{position:relative;overflow:hidden}
+        .section-label{font-size:12px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;display:block}
+        .section-heading{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,6vw,72px);letter-spacing:.02em;line-height:.92;color:var(--white)}
+        .section-heading em{font-family:'Instrument Serif',serif;font-style:italic;color:var(--muted)}
+
+        /* reveal */
+        .reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}
+        .reveal.visible{opacity:1;transform:translateY(0)}
+        [data-delay="1"]{transition-delay:.1s}[data-delay="2"]{transition-delay:.2s}[data-delay="3"]{transition-delay:.3s}
+
+        /* PORTFOLIO SECTION */
+        .portfolio-section{padding:80px 24px;background:var(--black)}
+        .portfolio-inner{max-width:1100px;margin:0 auto}
+        .portfolio-controls{display:flex;gap:12px;margin-top:40px;flex-wrap:wrap;align-items:center}
+        .p-input{height:44px;background:var(--panel);border:1px solid var(--border);border-radius:980px;color:var(--white);padding:0 20px;font-size:14px;font-family:'Geist',sans-serif;outline:none;transition:all .2s;flex:1;min-width:180px;max-width:240px}
+        .p-input:focus{border-color:rgba(255,255,255,.3);background:var(--panel2)}
+        .p-input::placeholder{color:var(--faint)}
+        .p-btn{height:44px;padding:0 24px;border-radius:980px;border:none;font-family:'Geist',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+        .p-btn.dark{background:var(--white);color:var(--black)}.p-btn.dark:hover{background:var(--off-white);transform:scale(1.02)}
+        .p-btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.p-btn.ghost:hover{border-color:rgba(255,255,255,.3);color:var(--white)}
+        .p-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+        .notice{padding:10px 16px;border-radius:10px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+        .notice.ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(48,209,88,.2)}
+        .notice.err{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,69,58,.2)}
+        .p-table-wrap{margin-top:32px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+        .p-table{width:100%;border-collapse:collapse}
+        .p-table th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:14px 20px;border-bottom:1px solid var(--border);text-align:left;background:var(--panel);font-weight:400}
+        .p-table th.r{text-align:right}
+        .p-table td{padding:14px 20px;border-bottom:1px solid var(--border);font-size:14px}
+        .p-table td.r{text-align:right;font-family:'Geist Mono',monospace;font-size:13px;color:var(--muted)}
+        .p-table tr:last-child td{border-bottom:none}
+        .p-table tr{transition:background .15s}.p-table tr:hover td{background:rgba(255,255,255,.03)}
+        .sym-cell{display:flex;align-items:center;gap:12px}
+        .sym-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+        .sym-label{font-weight:500;color:var(--white);font-size:14px}
+        .abar{display:flex;align-items:center;gap:10px}
+        .abar-bg{flex:1;height:2px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+        .abar-fill{height:100%;border-radius:99px;transition:width .7s ease}
+        .abar-pct{font-family:'Geist Mono',monospace;font-size:11px;color:var(--faint);width:36px;text-align:right}
+        .del-btn{background:none;border:none;color:var(--faint);cursor:pointer;font-size:18px;padding:4px 8px;border-radius:6px;transition:all .15s;line-height:1}
+        .del-btn:hover{color:var(--red);background:var(--red-dim)}
+        .p-empty{padding:64px;text-align:center;color:var(--faint);font-size:14px}
+        .p-empty-icon{font-size:36px;margin-bottom:12px;opacity:.4}
+
+        /* ANALYSIS */
+        .analysis-section{padding:80px 24px;background:var(--off-black)}
+        .analysis-inner{max-width:1100px;margin:0 auto}
+        .analysis-trigger{margin-top:40px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+        .analysis-results{margin-top:40px;display:none;flex-direction:column;gap:20px}
+        .analysis-results.show{display:flex;animation:fadeUp .5s ease}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+        .metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+        .metric-box{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:24px;position:relative;overflow:hidden;transition:border-color .25s}
+        .metric-box:hover{border-color:rgba(255,255,255,.2)}
+        .metric-box::after{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--m-col,rgba(255,255,255,.2))}
+        .m-lbl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
+        .m-val{font-family:'Geist Mono',monospace;font-size:28px;font-weight:300;color:var(--white);line-height:1;margin-bottom:8px;letter-spacing:-.02em}
+        .m-desc{font-size:12px;color:var(--muted);line-height:1.5}
+        .analysis-bottom{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        .glass-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:24px}
+        .glass-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+        .glass-card-title{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint)}
+        .rec-box{padding:16px;border-radius:10px;background:rgba(255,214,10,.06);border:1px solid rgba(255,214,10,.15);border-left:3px solid var(--gold);display:flex;gap:10px;align-items:flex-start;margin-bottom:16px}
+        .rec-icon{font-size:16px}.rec-text{font-size:13px;color:var(--text);line-height:1.6;font-weight:300}
+        .scen-item{padding:10px 14px;border-radius:8px;font-size:12px;color:var(--muted);margin-bottom:8px;border-left:2px solid var(--gold);background:rgba(255,214,10,.04)}
+        .expl-text{font-size:13px;color:var(--muted);line-height:1.8;font-weight:300;white-space:pre-line}
+        .w-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+        .w-row:last-child{border-bottom:none}
+        .w-sym{font-family:'Geist Mono',monospace;font-size:11px;font-weight:500;color:var(--text);width:50px}
+        .w-bg{flex:1;height:3px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+        .w-fill{height:100%;border-radius:99px;transition:width 1s cubic-bezier(.34,1.56,.64,1)}
+        .w-pct{font-family:'Geist Mono',monospace;font-size:10px;color:var(--muted);width:36px;text-align:right}
+
+        /* SIMULATE */
+        .simulate-section{padding:80px 24px;background:var(--black)}
+        .simulate-inner{max-width:1100px;margin:0 auto}
+        .scen-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:40px}
+        .scen-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:24px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;text-align:left;font-family:'Geist',sans-serif}
+        .scen-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--s-col,rgba(255,255,255,.2));opacity:0;transition:opacity .25s}
+        .scen-card:hover{border-color:rgba(255,255,255,.2);transform:translateY(-4px)}
+        .scen-card:hover::before,.scen-card.sel::before{opacity:1}
+        .scen-card.sel{border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.05)}
+        .scen-icon{font-size:24px;margin-bottom:14px}
+        .scen-name{font-size:15px;font-weight:500;color:var(--white);margin-bottom:6px}
+        .scen-desc{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:14px;font-weight:300}
+        .scen-impact{font-family:'Geist Mono',monospace;font-size:14px;font-weight:500}
+        .sim-run-bar{margin-top:28px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+        .sim-results{margin-top:40px;display:none;flex-direction:column;gap:16px}
+        .sim-results.show{display:flex;animation:fadeUp .5s ease}
+        .sim-stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+        .sim-stat{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px}
+        .sim-stat-lbl{font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+        .sim-stat-val{font-family:'Geist Mono',monospace;font-size:26px;font-weight:300;color:var(--white)}
+        .sim-chart-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:24px 28px 20px;overflow:hidden}
+        .sim-chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+        .sim-chart-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+        .sim-chart-legend{display:flex;align-items:center;gap:8px}
+        .sim-legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+        .sim-legend-text{font-size:11px;font-family:'Geist Mono',monospace;color:var(--muted)}
+        /* Waterfall / delta bars */
+        .sim-waterfall{display:flex;align-items:stretch;gap:3px;height:56px;margin-bottom:20px;position:relative}
+        .sim-waterfall::after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;background:rgba(255,255,255,.06)}
+        .swbar{flex:1;border-radius:4px;display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden;cursor:default}
+        .swbar-fill{border-radius:4px;transition:height .7s cubic-bezier(.34,1.56,.64,1);position:relative}
+        .swbar-fill::after{content:'';position:absolute;inset:0;border-radius:4px;background:linear-gradient(180deg,rgba(255,255,255,.12) 0%,transparent 60%)}
+        .swbar-lbl{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-family:'Geist Mono',monospace;font-size:9px;color:var(--faint);white-space:nowrap;letter-spacing:.04em}
+        .swbar-val{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:'Geist Mono',monospace;font-size:9px;white-space:nowrap;letter-spacing:.02em;opacity:0;transition:opacity .3s}
+        .swbar:hover .swbar-val{opacity:1}
+        .sim-chart-wrap{height:200px;position:relative;margin-top:24px}
+
+        /* AGENT */
+        .agent-section{padding:80px 24px;background:var(--off-black)}
+        .agent-inner{max-width:860px;margin:0 auto;text-align:center}
+        .section-body{font-size:clamp(15px,2vw,18px);font-weight:300;color:var(--muted);line-height:1.65;max-width:520px}
+        .agent-card{margin-top:48px;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;text-align:left}
+        .agent-chips{padding:16px 20px;display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--panel2)}
+        .chip{padding:7px 16px;border-radius:980px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;transition:all .2s;font-family:'Geist',sans-serif}
+        .chip:hover{border-color:rgba(255,255,255,.3);color:var(--white);background:rgba(255,255,255,.05)}
+        .chat-area{min-height:200px;max-height:320px;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:10px;background:var(--black)}
+        .chat-area::-webkit-scrollbar{width:3px}.chat-area::-webkit-scrollbar-thumb{background:var(--faint);border-radius:99px}
+        .chat-msg{padding:12px 18px;border-radius:14px;font-size:13px;line-height:1.65;max-width:80%;animation:msgIn .25s ease}
+        @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .chat-msg.user{background:var(--white);color:var(--black);align-self:flex-end;border-radius:14px 14px 2px 14px;font-weight:400}
+        .chat-msg.bot{background:var(--panel);border:1px solid var(--border);color:var(--muted);align-self:flex-start;border-radius:14px 14px 14px 2px}
+        .chat-input-row{display:flex;border-top:1px solid var(--border)}
+        .chat-input{flex:1;height:50px;background:transparent;border:none;color:var(--white);padding:0 20px;font-size:14px;font-family:'Geist',sans-serif;outline:none}
+        .chat-input::placeholder{color:var(--faint)}
+        .chat-send{height:50px;padding:0 24px;background:var(--white);color:var(--black);border:none;font-family:'Geist',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;letter-spacing:.01em}
+        .chat-send:hover{background:var(--off-white)}
+
+        /* FOOTER */
+        .footer{padding:60px 24px;background:var(--off-black);border-top:1px solid var(--border)}
+        .footer-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px}
+        .footer-brand{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.06em;color:var(--white)}
+        .footer-links{display:flex;gap:24px;flex-wrap:wrap}
+        .footer-links a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s;font-weight:300}
+        .footer-links a:hover{color:var(--white)}
+        .footer-copy{font-size:12px;color:var(--faint)}
+
+        /* EVENTS FEED */
+        .events-section{padding:80px 0;background:var(--black);overflow:hidden;border-top:1px solid var(--border)}
+        .events-head{padding:0 24px;max-width:1100px;margin:0 auto 48px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:20px}
+        .events-marquee-outer{overflow:hidden;position:relative}
+        .events-marquee-outer::before,.events-marquee-outer::after{content:'';position:absolute;top:0;bottom:0;width:100px;z-index:2;pointer-events:none}
+        .events-marquee-outer::before{left:0;background:linear-gradient(to right,var(--black),transparent)}
+        .events-marquee-outer::after{right:0;background:linear-gradient(to left,var(--black),transparent)}
+        .events-track{display:flex;gap:12px;animation:evScroll 35s linear infinite;width:max-content;padding:4px 12px}
+        .events-track:hover{animation-play-state:paused}
+        .events-track.rev{animation-direction:reverse;animation-duration:42s}
+        .ev-card{width:280px;flex-shrink:0;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+        .ev-card:hover{border-color:rgba(255,255,255,.2);transform:translateY(-3px);background:var(--panel2)}
+        .ev-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ev-col,rgba(255,255,255,.2))}
+        .ev-cat{display:inline-block;font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:3px 10px;border-radius:6px;background:rgba(255,255,255,.07);color:var(--muted);margin-bottom:10px}
+        .ev-headline{font-size:12px;font-weight:400;color:var(--text);line-height:1.55;margin-bottom:12px}
+        .ev-foot{display:flex;align-items:center;justify-content:space-between}
+        .ev-time{font-size:10px;color:var(--faint);font-family:'Geist Mono',monospace}
+        .ev-impact{font-family:'Geist Mono',monospace;font-size:12px;font-weight:500}
+        .live-badge{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:980px;background:rgba(48,209,88,.08);border:1px solid rgba(48,209,88,.2)}
+        .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+        @keyframes evScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+
+        /* SPIN */
+        .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.15);border-top-color:rgba(0,0,0,.7);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+        .spin.light{border-color:rgba(255,255,255,.15);border-top-color:var(--white)}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+
+        /* SIMULATE — event adjustments */
+        .sim-events-panel{margin-top:28px;background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:none}
+        .sim-events-panel.show{display:block}
+        .sep-head{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--panel2)}
+        .sep-title{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+        .sep-badge{font-size:11px;font-family:'Geist Mono',monospace;padding:3px 10px;border-radius:6px}
+        .sep-badge.pos{background:var(--green-dim);color:var(--green)}
+        .sep-badge.neg{background:var(--red-dim);color:var(--red)}
+        .sep-badge.neu{background:var(--blue-dim);color:var(--blue)}
+        .sep-list{padding:6px 0}
+        .sep-row{display:flex;align-items:flex-start;gap:12px;padding:11px 20px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s}
+        .sep-row:last-child{border-bottom:none}
+        .sep-row:hover{background:rgba(255,255,255,.03)}
+        .sep-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+        .sep-text{flex:1;font-size:12px;color:var(--muted);line-height:1.5}
+        .sep-text strong{color:var(--text);font-weight:500}
+        .sep-adj{font-family:'Geist Mono',monospace;font-size:12px;font-weight:500;white-space:nowrap;flex-shrink:0}
+        .sim-adj-total{margin-top:14px;padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.02)}
+        .sim-adj-lbl{font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em}
+        .sim-adj-val{font-family:'Geist Mono',monospace;font-size:16px;font-weight:400}
+        /* impact badge on scenario cards */
+        .scen-adj-badge{font-size:10px;font-family:'Geist Mono',monospace;padding:3px 8px;border-radius:6px;margin-top:8px;display:inline-block}
+
+        @media(max-width:768px){
+          .nav-links,.nav-user{display:none}.nav-burger{display:flex}
+          .dash-kpis{grid-template-columns:repeat(2,1fr)}
+          .metrics-grid{grid-template-columns:1fr}
+          .scen-grid{grid-template-columns:1fr}
+          .sim-stats-row{grid-template-columns:repeat(2,1fr)}
+          .analysis-bottom{grid-template-columns:1fr}
+          .portfolio-controls{flex-direction:column;align-items:stretch}
+          .p-input{max-width:100%}.p-btn{justify-content:center}
+        }
+        @media(max-width:480px){.dash-kpis{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+
+<div class="cursor" id="cursor">
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+</div>
+
+<nav class="nav" id="mainNav">
+    <a class="nav-logo" href="index.html">RIPPLEWEALTH</a>
+    <ul class="nav-links">
+        <li><a href="#portfolio" class="active">Portfolio</a></li>
+        <li><a href="#analysis">Analysis</a></li>
+        <li><a href="#simulate">Simulate</a></li>
+        <li><a href="#events">Events</a></li>
+        <li><a href="#agent">AI Advisor</a></li>
+    </ul>
+    <div class="nav-user">
+        <span class="nav-username" id="navUsername"></span>
+        <a class="nav-signout" href="login.html" onclick="signOut()">Sign out</a>
+    </div>
+    <div class="nav-burger" id="burger" onclick="toggleDrawer()">
+        <span></span><span></span><span></span>
+    </div>
+</nav>
+
+<div class="nav-drawer" id="drawer">
+    <a href="#portfolio" onclick="closeDrawer()">Portfolio</a>
+    <a href="#analysis" onclick="closeDrawer()">Analysis</a>
+    <a href="#simulate" onclick="closeDrawer()">Simulate</a>
+    <a href="#events" onclick="closeDrawer()">Events</a>
+    <a href="#agent" onclick="closeDrawer()">AI Advisor</a>
+    <a href="login.html" onclick="signOut()">Sign out</a>
+</div>
+
+<div class="page-wrap">
+
+<!-- DASHBOARD HERO -->
+<div class="dash-hero">
+    <div class="dash-inner">
+        <div class="dash-greeting" id="dashGreeting">Welcome back</div>
+        <h1 class="dash-title">Your portfolio.<br><em>Intelligence.</em></h1>
+        <div class="dash-kpis">
+            <div class="kpi"><div class="kpi-lbl">Holdings</div><div class="kpi-val" id="kpiAssets">—</div><div class="kpi-sub">Active positions</div></div>
+            <div class="kpi"><div class="kpi-lbl">Total quantity</div><div class="kpi-val" id="kpiTotal">—</div><div class="kpi-sub">Units held</div></div>
+            <div class="kpi"><div class="kpi-lbl">Sharpe ratio</div><div class="kpi-val" id="kpiSharpe" style="color:var(--red)">—</div><div class="kpi-sub">Run analysis to update</div></div>
+            <div class="kpi"><div class="kpi-lbl">Value at Risk</div><div class="kpi-val" id="kpiVar" style="color:var(--red)">—</div><div class="kpi-sub">Daily 95% confidence</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- PORTFOLIO -->
+<section class="portfolio-section" id="portfolio">
+    <div class="portfolio-inner">
+        <span class="section-label reveal">Your portfolio</span>
+        <h2 class="section-heading reveal" data-delay="1">Build it.<br><em>Track it.</em></h2>
+        <div id="pNotice"></div>
+        <div class="portfolio-controls reveal" data-delay="2">
+            <input class="p-input" id="pSym" placeholder="Ticker (e.g. AAPL)" onkeydown="if(event.key==='Enter')addAsset()"/>
+            <input class="p-input" id="pQty" type="number" placeholder="Quantity" onkeydown="if(event.key==='Enter')addAsset()"/>
+            <button class="p-btn dark" id="addBtn" onclick="addAsset()">+ Add asset</button>
+            <button class="p-btn ghost" onclick="loadPortfolio()">↺ Refresh</button>
+        </div>
+        <div class="p-table-wrap reveal" data-delay="3" id="pTableWrap">
+            <div class="p-empty"><div class="p-empty-icon">📁</div>Loading portfolio…</div>
+        </div>
+    </div>
+</section>
+
+<!-- ANALYSIS -->
+<section class="analysis-section" id="analysis">
+    <div class="analysis-inner">
+        <span class="section-label reveal">Risk engine</span>
+        <h2 class="section-heading reveal" data-delay="1">Analyse.<br><em>Optimise.</em></h2>
+        <div class="analysis-trigger reveal" data-delay="2">
+            <button class="p-btn dark" id="analyzeBtn" onclick="runAnalysis()">▶ Run analysis</button>
+            <span style="font-size:13px;color:var(--muted);font-weight:300">Uses 1-year price history · yfinance</span>
+        </div>
+        <div class="analysis-results" id="analysisResults">
+            <div class="metrics-grid" id="metricsGrid"></div>
+            <div class="analysis-bottom" id="analysisBottom"></div>
+        </div>
+    </div>
+</section>
+
+<!-- SIMULATE -->
+<section class="simulate-section" id="simulate">
+    <div class="simulate-inner">
+        <span class="section-label reveal">Scenario engine</span>
+        <h2 class="section-heading reveal" data-delay="1">What if?<br><em>Find out.</em></h2>
+        <p style="font-size:14px;color:var(--muted);font-weight:300;margin-top:12px;margin-bottom:0" class="reveal" data-delay="1">Scenarios are adjusted in real-time using the live events feed — relevant earnings, macro, and Fed signals affecting your holdings are factored in automatically.</p>
+        <div class="scen-grid reveal" data-delay="2">
+            <div class="scen-card sel" data-ev="inflation" data-base="-10" onclick="pickScen(this)" style="--s-col:var(--red)">
+                <div class="scen-icon">📈</div>
+                <div class="scen-name">Inflation shock</div>
+                <div class="scen-desc">Rising rates compress equity valuations and increase borrowing costs across the market.</div>
+                <div class="scen-impact" style="color:var(--red)">-10% base impact</div>
+                <div class="scen-adj-badge" id="adjBadge-inflation"></div>
+            </div>
+            <div class="scen-card" data-ev="crash" data-base="-20" onclick="pickScen(this)" style="--s-col:var(--red)">
+                <div class="scen-icon">📉</div>
+                <div class="scen-name">Market crash</div>
+                <div class="scen-desc">Correlation spikes, diversification fails, sharp and rapid drawdown hits all positions.</div>
+                <div class="scen-impact" style="color:var(--red)">-20% base impact</div>
+                <div class="scen-adj-badge" id="adjBadge-crash"></div>
+            </div>
+            <div class="scen-card" data-ev="growth" data-base="10" onclick="pickScen(this)" style="--s-col:var(--green)">
+                <div class="scen-icon">🚀</div>
+                <div class="scen-name">Bull growth</div>
+                <div class="scen-desc">Risk-on environment. Growth and momentum assets outperform the broader market.</div>
+                <div class="scen-impact" style="color:var(--green)">+10% base impact</div>
+                <div class="scen-adj-badge" id="adjBadge-growth"></div>
+            </div>
+        </div>
+
+        <!-- Event adjustments panel (shown after picking a scenario) -->
+        <div class="sim-events-panel" id="simEventsPanel">
+            <div class="sep-head">
+                <span class="sep-title">Live event adjustments for your holdings</span>
+                <span class="sep-badge" id="sepTotalBadge"></span>
+            </div>
+            <div class="sep-list" id="sepList"></div>
+            <div class="sim-adj-total">
+                <span class="sim-adj-lbl">Total event adjustment</span>
+                <span class="sim-adj-val" id="simAdjTotal">—</span>
+            </div>
+        </div>
+
+        <div class="sim-run-bar reveal" data-delay="3">
+            <button class="p-btn dark" id="simBtn" onclick="runSim()">▶ Run simulation with live events</button>
+        </div>
+        <div class="sim-results" id="simResults">
+            <div class="sim-stats-row">
+                <div class="sim-stat"><div class="sim-stat-lbl">Base impact</div><div class="sim-stat-val" id="simImp">—</div></div>
+                <div class="sim-stat"><div class="sim-stat-lbl">Event adjustment</div><div class="sim-stat-val" id="simEvAdj" style="color:var(--gold)">—</div></div>
+                <div class="sim-stat"><div class="sim-stat-lbl">Adjusted impact</div><div class="sim-stat-val" id="simAdjImp">—</div></div>
+                <div class="sim-stat"><div class="sim-stat-lbl">Base value</div><div class="sim-stat-val" id="simBase" style="color:var(--gold)">—</div></div>
+                <div class="sim-stat"><div class="sim-stat-lbl">Final value</div><div class="sim-stat-val" id="simFin">—</div></div>
+            </div>
+            <div class="sim-chart-card">
+                <div class="sim-chart-header">
+                    <span class="sim-chart-label">Projected portfolio value</span>
+                    <div class="sim-chart-legend">
+                        <span class="sim-legend-dot" id="simLegendDot"></span>
+                        <span class="sim-legend-text" id="simLegendText"></span>
+                    </div>
+                </div>
+                <div class="sim-waterfall" id="simBars"></div>
+                <div class="sim-chart-wrap"><canvas id="simChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- LIVE EVENTS FEED -->
+<section class="events-section" id="events">
+    <div class="events-head">
+        <div class="reveal">
+            <span class="section-label">Live events feed</span>
+            <h2 class="section-heading">Markets move.<br><em>Stay ahead.</em></h2>
+        </div>
+        <div class="reveal" data-delay="2">
+            <div class="live-badge">
+                <div class="live-dot"></div>
+                <span style="font-size:12px;color:var(--green);font-weight:500">Real-time</span>
+            </div>
+        </div>
+    </div>
+    <div class="events-marquee-outer"><div class="events-track" id="dashEvRow1"></div></div>
+    <div style="height:12px"></div>
+    <div class="events-marquee-outer"><div class="events-track rev" id="dashEvRow2"></div></div>
+</section>
+
+<!-- AGENT -->
+<section class="agent-section" id="agent">
+    <div class="agent-inner">
+        <span class="section-label reveal">AI advisor</span>
+        <h2 class="section-heading reveal" data-delay="1">Ask anything.<br><em>Know everything.</em></h2>
+        <p class="section-body reveal" data-delay="2" style="margin:16px auto 0;text-align:center">Your personal portfolio advisor, powered by multi-agent AI. Ask about risk, diversification, allocation, or market conditions.</p>
+        <div class="agent-card reveal" data-delay="3" style="transition-duration:.7s">
+            <div class="agent-chips">
+                <div class="chip" onclick="chipAsk(this)">What is my portfolio risk?</div>
+                <div class="chip" onclick="chipAsk(this)">Should I worry about a crash?</div>
+                <div class="chip" onclick="chipAsk(this)">Is my portfolio diversified?</div>
+                <div class="chip" onclick="chipAsk(this)">What does Sharpe ratio mean?</div>
+                <div class="chip" onclick="chipAsk(this)">What allocation do you recommend?</div>
+            </div>
+            <div class="chat-area" id="chatArea">
+                <div class="chat-msg bot">Hello. I'm your AI portfolio advisor. Ask me about your holdings, risk metrics, allocation strategy, or what macro events mean for your portfolio.</div>
+            </div>
+            <div class="chat-input-row">
+                <input class="chat-input" id="chatIn" placeholder="Ask about your portfolio…" onkeydown="if(event.key==='Enter')sendChat()"/>
+                <button class="chat-send" id="chatBtn" onclick="sendChat()">Ask →</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="footer-inner">
+        <div class="footer-brand">RIPPLEWEALTH</div>
+        <div class="footer-links">
+            <a href="index.html">Home</a>
+            <a href="#portfolio">Portfolio</a>
+            <a href="#analysis">Analysis</a>
+            <a href="#simulate">Simulate</a>
+            <a href="#events">Events</a>
+            <a href="#agent">AI Advisor</a>
+        </div>
+        <span class="footer-copy">© 2025 RippleWealth. All rights reserved.</span>
+    </div>
+</footer>
+
+</div><!-- /page-wrap -->
+
+<script>
+    const API='http://127.0.0.1:8001';
+    const PAL=['#30d158','#0a84ff','#ffd60a','#ff453a','#bf5af2','#ff9f0a'];
+    const DEMO_PF=[{id:1,symbol:'AAPL',quantity:80000},{id:2,symbol:'MSFT',quantity:78950},{id:3,symbol:'NVDA',quantity:100000}];
+    const BOT={
+      risk:'Your portfolio is concentrated in US large-cap technology. The Sharpe ratio of -0.98 signals returns are not compensating for risk. Consider shifting 15–20% into defensive sectors or investment-grade bonds.',
+      crash:'A crash scenario shows -20% immediate impact. NVDA (high beta ~1.7) would be hit hardest. A 10–15% allocation to gold or short-duration Treasuries could reduce max drawdown significantly.',
+      divers:'Your portfolio is 100% US large-cap tech — essentially a single-sector bet. True diversification requires international equities, fixed income, REITs, and alternative assets.',
+      sharpe:'Sharpe ratio measures excess return per unit of risk. Your current -0.98 means you are underperforming a risk-free benchmark on a risk-adjusted basis. Target above 1.0 for a healthy portfolio.',
+      alloc:'I suggest: AAPL 20%, MSFT 25%, NVDA 15%, AGG bonds 20%, VXUS international 10%, GLD gold 10%. This reduces tech concentration while maintaining growth exposure.',
+      default:'Based on your current holdings, your portfolio is heavily concentrated in US technology. Run the Analysis section above for precise Sharpe, VaR, and optimised weights.'
+    };
+
+    let user=null, portfolio=[], lastAnalysis=null, simInst=null, selEv='inflation';
+
+    // CURSOR
+    const dot=document.getElementById('cursorDot'),ring=document.getElementById('cursorRing'),cursor=document.getElementById('cursor');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;dot.style.left=mx+'px';dot.style.top=my+'px';});
+    (function animRing(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animRing);})();
+    document.querySelectorAll('a,button,.chip,.scen-card,.showcase-card').forEach(el=>{el.addEventListener('mouseenter',()=>document.body.classList.add('hovering'));el.addEventListener('mouseleave',()=>document.body.classList.remove('hovering'));});
+    if('ontouchstart' in window)cursor.style.display='none';
+
+    // NAV MOBILE
+    function toggleDrawer(){document.getElementById('drawer').classList.toggle('open')}
+    function closeDrawer(){document.getElementById('drawer').classList.remove('open')}
+
+    // NAV ACTIVE
+    window.addEventListener('scroll',()=>{
+      const sections=['portfolio','analysis','simulate','events','agent'];
+      const links=document.querySelectorAll('.nav-links a');
+      sections.forEach((id,i)=>{
+        const el=document.getElementById(id);
+        if(!el)return;
+        const rect=el.getBoundingClientRect();
+        if(rect.top<=80&&rect.bottom>80)links[i]?.classList.add('active');
+        else links[i]?.classList.remove('active');
+      });
+    },{passive:true});
+
+    // AUTH
+    function signOut(){localStorage.removeItem('rw_user');localStorage.removeItem('rw_portfolio');}
+
+    function initUser(){
+      try{user=JSON.parse(localStorage.getItem('rw_user'));}catch{}
+      if(!user){window.location.href='login.html';return;}
+      document.getElementById('navUsername').textContent=user.username+(user.isDemo?' (demo)':'');
+      document.getElementById('dashGreeting').textContent='Welcome back, '+user.username;
+      loadPortfolio();
+    }
+
+    // PORTFOLIO PERSISTENCE — key is per-user so accounts don't share portfolio data
+    const STORAGE_KEY = 'rw_portfolio_' + (user ? user.uid : 'anon');
+
+    function savePortfolioLocal(){
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(portfolio)); } catch{}
+    }
+
+    function loadPortfolioLocal(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw){ const parsed = JSON.parse(raw); if(Array.isArray(parsed) && parsed.length) return parsed; }
+      }catch{}
+      return null;
+    }
+
+    async function loadPortfolio(){
+      if(!user) return;
+
+      if(user.isDemo){
+        // Demo: use localStorage; seed with defaults only on very first visit
+        const saved = loadPortfolioLocal();
+        portfolio = saved ? saved : [...DEMO_PF];
+        renderPortfolio();
+        updateScenBadges();
+        return;
+      }
+
+      // Real user: always try backend first
+      try{
+        const r = await fetch(`${API}/portfolio/${user.uid}`);
+        if(!r.ok) throw new Error('bad response');
+        const d = await r.json();
+        if(Array.isArray(d)){
+          portfolio = d;
+          savePortfolioLocal();
+          renderPortfolio();
+          updateScenBadges();
+          return;
+        }
+      } catch { /* backend unreachable */ }
+
+      // Offline fallback — use last cached version (empty if first time)
+      const saved = loadPortfolioLocal();
+      portfolio = saved ? saved : [];
+      renderPortfolio();
+      if(!saved) showFlash('pNotice', 'Backend unreachable — working offline', 'err');
+    }
+
+    function renderPortfolio(){
+      const total = portfolio.reduce((s,a) => s + Number(a.quantity), 0);
+      document.getElementById('kpiAssets').textContent = portfolio.length;
+      document.getElementById('kpiTotal').textContent = total.toLocaleString();
+      const wrap = document.getElementById('pTableWrap');
+      if(!portfolio.length){
+        wrap.innerHTML = '<div class="p-empty"><div class="p-empty-icon">📁</div>No holdings — add a ticker above</div>';
+        return;
+      }
+      wrap.innerHTML = `<table class="p-table">
+        <thead><tr><th>Asset</th><th class="r">Quantity</th><th class="r">Weight</th><th>Allocation</th><th></th></tr></thead>
+        <tbody>${portfolio.map((a,i) => {
+          const pct = ((Number(a.quantity)/total)*100).toFixed(1);
+          return `<tr>
+            <td><div class="sym-cell"><span class="sym-dot" style="background:${PAL[i%PAL.length]}"></span><span class="sym-label">${a.symbol}</span></div></td>
+            <td class="r">${Number(a.quantity).toLocaleString()}</td>
+            <td class="r">${pct}%</td>
+            <td style="min-width:140px"><div class="abar"><div class="abar-bg"><div class="abar-fill" style="width:${pct}%;background:${PAL[i%PAL.length]}"></div></div><span class="abar-pct">${pct}%</span></div></td>
+            <td><button class="del-btn" onclick="removeAsset(${i})">×</button></td>
+          </tr>`;
+        }).join('')}</tbody></table>`;
+    }
+
+    async function addAsset(){
+      if(!user){ showFlash('pNotice','Sign in first','err'); return; }
+      const sym = document.getElementById('pSym').value.trim().toUpperCase();
+      const qty = parseFloat(document.getElementById('pQty').value);
+      if(!sym){ showFlash('pNotice','Enter a ticker symbol','err'); return; }
+      if(!qty || qty <= 0){ showFlash('pNotice','Enter a valid quantity','err'); return; }
+      const btn = document.getElementById('addBtn');
+      btn.innerHTML = '<span class="spin"></span>'; btn.disabled = true;
+
+      if(user.isDemo){
+        // Demo: persist to localStorage only
+        const existing = portfolio.findIndex(a => a.symbol === sym);
+        if(existing >= 0){ portfolio[existing].quantity += qty; }
+        else { portfolio.push({id: Date.now(), symbol: sym, quantity: qty}); }
+        savePortfolioLocal();
+        renderPortfolio();
+        updateScenBadges();
+        showFlash('pNotice', sym + ' added', 'ok');
+      } else {
+        // Real user: POST to backend
+        let saved = false;
+        try{
+          const r = await fetch(`${API}/portfolio/add`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({user_id: parseInt(user.uid), symbol: sym, quantity: qty})
+          });
+          const d = await r.json();
+          if(r.ok){
+            showFlash('pNotice', sym + ' added', 'ok');
+            await loadPortfolio();   // re-fetch so IDs are correct for deletes
+            saved = true;
+          } else {
+            showFlash('pNotice', d.detail || 'Failed to add asset', 'err');
+            saved = true;   // backend responded with an error — don't double-save
+          }
+        } catch { /* backend unreachable */ }
+
+        if(!saved){
+          // Offline fallback
+          const existing = portfolio.findIndex(a => a.symbol === sym);
+          if(existing >= 0){ portfolio[existing].quantity += qty; }
+          else { portfolio.push({id: Date.now(), symbol: sym, quantity: qty}); }
+          savePortfolioLocal();
+          renderPortfolio();
+          showFlash('pNotice', sym + ' added (offline)', 'ok');
+        }
+      }
+      document.getElementById('pSym').value = '';
+      document.getElementById('pQty').value = '';
+      btn.innerHTML = '+ Add asset'; btn.disabled = false;
+    }
+
+    function removeAsset(i){
+      if(user.isDemo || !user){
+        portfolio.splice(i, 1);
+        savePortfolioLocal();
+        renderPortfolio();
+        return;
+      }
+      const assetId = portfolio[i].id;
+      // Optimistically remove from UI immediately
+      portfolio.splice(i, 1);
+      savePortfolioLocal();
+      renderPortfolio();
+      // Then sync with backend
+      fetch(`${API}/portfolio/${assetId}`, {method:'DELETE'})
+        .catch(() => {
+          // If backend call fails, reload from server to restore correct state
+          loadPortfolio();
+          showFlash('pNotice', 'Delete failed — refreshed from server', 'err');
+        });
+    }
+
+    // ANALYSIS
+    async function runAnalysis(){
+      if(!portfolio.length){showFlash('pNotice','Add assets first','err');document.getElementById('portfolio').scrollIntoView({behavior:'smooth'});return;}
+      const btn=document.getElementById('analyzeBtn');btn.innerHTML='<span class="spin light"></span> Analyzing…';btn.disabled=true;
+      let d;
+      if(!user||user.isDemo){
+        await sleep(1100);
+        // Build optimised weights from the actual current portfolio
+        const total = portfolio.reduce((s,a) => s + Number(a.quantity), 0);
+        const weights = {};
+        portfolio.forEach(a => { weights[a.symbol] = parseFloat((Number(a.quantity)/total).toFixed(4)); });
+        const symbols = portfolio.map(a=>a.symbol).join(', ');
+        d={sharpe_ratio:-0.9820,VaR:-0.0209,optimization:{weights,expected_return:0.0018,volatility:0.0234},recommendation:'Moderate risk — diversify across sectors and geographies. Tech concentration is elevated.',scenarios:['Low efficiency portfolio — Sharpe below 0.5','High concentration risk in single sector'],explanation:`Your portfolio has a Sharpe Ratio of -0.98, indicating weak risk-adjusted performance relative to a risk-free benchmark.\n\nThe Value at Risk (VaR) is -0.0209, meaning potential single-day losses of up to 2.1% at 95% confidence.\n\nHoldings: ${symbols}.\n\nRecommendation: Highly concentrated in a single sector. Consider international exposure, fixed income, and defensive holdings to reduce drawdown risk.`};
+      } else {
+        try{const r=await fetch(`${API}/ai/analyze/${user.uid}`);d=await r.json();}
+        catch{d={sharpe_ratio:-0.98,VaR:-0.021,optimization:{weights:{},expected_return:0,volatility:0},recommendation:'Demo data',scenarios:[],explanation:''};}
+      }
+      lastAnalysis=d;
+      btn.innerHTML='▶ Run analysis';btn.disabled=false;
+      const sr=Number(d.sharpe_ratio)||0,vv=Number(d.VaR)||0,vol=d.optimization?.volatility||0;
+      const srCol=sr>1?'var(--green)':sr<0?'var(--red)':'var(--gold)';
+      const vvCol=vv>-0.01?'var(--green)':'var(--red)';
+      // Update KPIs
+      document.getElementById('kpiSharpe').textContent=sr.toFixed(2);
+      document.getElementById('kpiSharpe').style.color=srCol;
+      document.getElementById('kpiVar').textContent=(vv*100).toFixed(2)+'%';
+      document.getElementById('kpiVar').style.color=vvCol;
+      document.getElementById('metricsGrid').innerHTML=`
+        <div class="metric-box" style="--m-col:${srCol}"><div class="m-lbl">Sharpe ratio</div><div class="m-val" style="color:${srCol}">${sr.toFixed(4)}</div><div class="m-desc">Return per unit of risk. Strong: >1. Weak: <0. Yours is ${sr>1?'strong':sr<0?'weak':'moderate'}.</div></div>
+        <div class="metric-box" style="--m-col:${vvCol}"><div class="m-lbl">Value at risk (95%)</div><div class="m-val" style="color:${vvCol}">${vv.toFixed(4)}</div><div class="m-desc">Max expected daily portfolio loss at 95% confidence level.</div></div>
+        <div class="metric-box" style="--m-col:var(--gold)"><div class="m-lbl">Annualised volatility</div><div class="m-val" style="color:var(--gold)">${(vol*100).toFixed(2)}%</div><div class="m-desc">Standard deviation of returns, scaled to annual frequency.</div></div>`;
+      const wts=d.optimization?.weights||{};const mx2=Math.max(...Object.values(wts),.01);
+      document.getElementById('analysisBottom').innerHTML=`
+        <div class="glass-card">
+          <div class="glass-card-head"><span class="glass-card-title">Optimised weights</span></div>
+          ${Object.entries(wts).map(([s,w],i)=>`<div class="w-row"><div class="w-sym" style="color:${PAL[i%PAL.length]}">${s}</div><div class="w-bg"><div class="w-fill" style="width:${(w/mx2)*100}%;background:${PAL[i%PAL.length]}"></div></div><div class="w-pct">${(w*100).toFixed(1)}%</div></div>`).join('')}
+          <div style="display:flex;gap:24px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+            <div><div style="font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Exp. return</div><div style="font-family:'Geist Mono',monospace;font-size:18px;font-weight:300;color:var(--green)">${((d.optimization?.expected_return||0)*100).toFixed(3)}%</div></div>
+            <div><div style="font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px">Exp. volatility</div><div style="font-family:'Geist Mono',monospace;font-size:18px;font-weight:300;color:var(--text)">${((d.optimization?.volatility||0)*100).toFixed(3)}%</div></div>
+          </div>
+        </div>
+        <div class="glass-card">
+          <div class="glass-card-head"><span class="glass-card-title">Recommendation</span></div>
+          <div class="rec-box"><span class="rec-icon">💡</span><span class="rec-text">${d.recommendation||'—'}</span></div>
+          <div style="font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">Scenario alerts</div>
+          ${(d.scenarios||[]).map(s=>`<div class="scen-item">⚠ ${s}</div>`).join('')||'<div class="scen-item" style="border-left-color:var(--green);background:var(--green-dim);color:var(--green)">✓ No major risks detected</div>'}
+          <div style="margin-top:16px;font-size:10px;color:var(--faint);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">AI explanation</div>
+          <div class="expl-text">${d.explanation||''}</div>
+        </div>`;
+      document.getElementById('analysisResults').classList.add('show');
+    }
+
+    // ── SIMULATE ──────────────────────────────────────────────────────────────
+    // Maps event categories + portfolio symbols → per-event impact adjustments.
+    // Each event contributes a small delta (positive or negative) to the base scenario
+    // impact. Events mentioning a symbol in the user's portfolio get a weight bonus.
+
+    const EVENT_CATEGORY_IMPACT = {
+      inflation: { Earnings:+0.8, Fed:-1.2, Macro:-0.9, Geopolitics:-0.5, Sector:+0.3, Crypto:0 },
+      crash:     { Earnings:-1.0, Fed:-0.8, Macro:-1.1, Geopolitics:-1.5, Sector:-0.6, Crypto:-0.4 },
+      growth:    { Earnings:+1.2, Fed:+0.6, Macro:+0.8, Geopolitics:-0.3, Sector:+1.0, Crypto:+0.5 },
+    };
+
+    function computeEventAdjustments(scenario) {
+      const syms = portfolio.map(a => a.symbol.toUpperCase());
+      const catMap = EVENT_CATEGORY_IMPACT[scenario] || {};
+      const rows = [];
+
+      EVENTS_DATA.forEach(ev => {
+        let delta = catMap[ev.cat] || 0;
+        if(delta === 0) return;
+
+        // Check if any portfolio symbol is mentioned in the headline
+        const headUpper = ev.headline.toUpperCase();
+        const mentioned = syms.filter(s => headUpper.includes(s));
+
+        // Events that explicitly mention your holdings get 1.5x weight
+        const weight = mentioned.length > 0 ? 1.5 : 1.0;
+        const adj = parseFloat((delta * weight * (ev.pos === true ? 1 : ev.pos === false ? 1 : 0.4)).toFixed(2));
+
+        if(adj === 0) return;
+
+        rows.push({
+          headline: ev.headline,
+          cat: ev.cat,
+          col: ev.col,
+          mentioned,
+          adj,
+          pos: adj > 0,
+          t: ev.t,
+        });
+      });
+
+      // Sort by absolute impact, keep top 6
+      rows.sort((a,b) => Math.abs(b.adj) - Math.abs(a.adj));
+      return rows.slice(0, 6);
+    }
+
+    function renderEventPanel(rows, totalAdj) {
+      const panel = document.getElementById('simEventsPanel');
+      const list  = document.getElementById('sepList');
+      const badge = document.getElementById('sepTotalBadge');
+      const adjEl = document.getElementById('simAdjTotal');
+
+      panel.classList.add('show');
+      badge.textContent = (totalAdj >= 0 ? '+' : '') + totalAdj.toFixed(2) + '% net adjustment';
+      badge.className = 'sep-badge ' + (totalAdj > 0 ? 'pos' : totalAdj < 0 ? 'neg' : 'neu');
+      adjEl.textContent = (totalAdj >= 0 ? '+' : '') + totalAdj.toFixed(2) + '%';
+      adjEl.style.color = totalAdj >= 0 ? 'var(--green)' : 'var(--red)';
+
+      list.innerHTML = rows.map(r => {
+        const adjStr = (r.adj >= 0 ? '+' : '') + r.adj.toFixed(2) + '%';
+        const adjCol = r.adj >= 0 ? 'var(--green)' : 'var(--red)';
+        const dot = r.adj >= 0 ? '#30d158' : '#ff453a';
+        const mentionNote = r.mentioned.length ? ` <span style="color:var(--gold);font-size:10px">[${r.mentioned.join(', ')} in portfolio]</span>` : '';
+        return `<div class="sep-row">
+          <div class="sep-dot" style="background:${dot}"></div>
+          <div class="sep-text"><strong>${r.cat}</strong> — ${r.headline.length > 80 ? r.headline.slice(0,80)+'…' : r.headline}${mentionNote}</div>
+          <div class="sep-adj" style="color:${adjCol}">${adjStr}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function updateScenBadges() {
+      ['inflation','crash','growth'].forEach(scen => {
+        const badge = document.getElementById('adjBadge-' + scen);
+        if(!badge || !portfolio.length) return;
+        const rows = computeEventAdjustments(scen);
+        const total = rows.reduce((s,r) => s + r.adj, 0);
+        if(Math.abs(total) < 0.01) { badge.textContent = ''; return; }
+        badge.textContent = 'Events: ' + (total >= 0 ? '+' : '') + total.toFixed(1) + '%';
+        badge.style.background = total >= 0 ? 'rgba(48,209,88,.12)' : 'rgba(255,69,58,.12)';
+        badge.style.color = total >= 0 ? 'var(--green)' : 'var(--red)';
+      });
+    }
+
+    function pickScen(el) {
+      document.querySelectorAll('.scen-card').forEach(c => c.classList.remove('sel'));
+      el.classList.add('sel');
+      selEv = el.dataset.ev;
+      // Preview event panel immediately on card pick
+      if(portfolio.length) {
+        const rows = computeEventAdjustments(selEv);
+        const totalAdj = rows.reduce((s,r) => s + r.adj, 0);
+        renderEventPanel(rows, totalAdj);
+      }
+    }
+
+    async function runSim(){
+      if(!portfolio.length){ showFlash('pNotice','Add assets first','err'); document.getElementById('portfolio').scrollIntoView({behavior:'smooth'}); return; }
+      const btn=document.getElementById('simBtn');btn.innerHTML='<span class="spin light"></span> Analysing events…';btn.disabled=true;
+      await sleep(900);
+
+      const baseImp = {inflation:-10, crash:-20, growth:10}[selEv];
+      const baseTotal = portfolio.reduce((s,a) => s + Number(a.quantity), 0);
+
+      // Compute live event adjustments
+      const evRows = computeEventAdjustments(selEv);
+      const evAdj  = parseFloat(evRows.reduce((s,r) => s + r.adj, 0).toFixed(2));
+      const adjImp = parseFloat((baseImp + evAdj).toFixed(2));
+
+      // Render event panel
+      renderEventPanel(evRows, evAdj);
+
+      // Build projection using adjusted impact
+      const proj     = [0,1,2,3,4].map(i => parseFloat((baseTotal * (1 + adjImp/100 * i/4)).toFixed(2)));
+      const projNorm = [0,1,2,3,4].map(i => parseFloat((100 * (1 + adjImp/100 * i/4)).toFixed(2)));
+
+      // Update stat cards
+      document.getElementById('simImp').textContent  = (baseImp >= 0?'+':'') + baseImp + '%';
+      document.getElementById('simImp').style.color  = baseImp >= 0 ? 'var(--green)' : 'var(--red)';
+      document.getElementById('simEvAdj').textContent = (evAdj >= 0?'+':'') + evAdj.toFixed(2) + '%';
+      document.getElementById('simEvAdj').style.color = evAdj >= 0 ? 'var(--green)' : 'var(--red)';
+      document.getElementById('simAdjImp').textContent = (adjImp >= 0?'+':'') + adjImp.toFixed(2) + '%';
+      document.getElementById('simAdjImp').style.color = adjImp >= 0 ? 'var(--green)' : 'var(--red)';
+      document.getElementById('simBase').textContent  = baseTotal.toLocaleString();
+      document.getElementById('simFin').textContent   = proj[4].toLocaleString(undefined,{maximumFractionDigits:0});
+      document.getElementById('simFin').style.color   = proj[4] >= baseTotal ? 'var(--green)' : 'var(--red)';
+      const pos = adjImp >= 0;
+      const accentHex = pos ? '#30d158' : '#ff453a';
+      const accentVar = pos ? 'var(--green)' : 'var(--red)';
+      const fillRgba  = pos ? 'rgba(48,209,88,.08)' : 'rgba(255,69,58,.08)';
+      const monoFont  = 'Geist Mono';
+
+      // ── Modern waterfall bars ────────────────────────────────────────────
+      // Each bar shows the incremental delta vs previous step, coloured by direction
+      const mn = Math.min(...proj), mx = Math.max(...proj);
+      const range = mx - mn || 1;
+      document.getElementById('simBars').innerHTML = proj.map((v, i) => {
+        const pct = Math.max(8, ((v - mn) / range) * 100);
+        const delta = i === 0 ? 0 : v - proj[i-1];
+        const bCol  = i === 0 ? 'rgba(255,255,255,.15)' : delta >= 0 ? '#30d158' : '#ff453a';
+        const vStr  = v.toLocaleString(undefined, {maximumFractionDigits: 0});
+        const dStr  = i === 0 ? 'Base' : (delta >= 0 ? '+' : '') + delta.toLocaleString(undefined, {maximumFractionDigits: 0});
+        return `<div class="swbar">
+          <span class="swbar-val" style="color:${bCol}">${dStr}</span>
+          <div class="swbar-fill" style="height:${pct}%;background:${bCol}"></div>
+          <span class="swbar-lbl">T${i}</span>
+        </div>`;
+      }).join('');
+
+      // Legend
+      document.getElementById('simLegendDot').style.background = accentHex;
+      document.getElementById('simLegendText').textContent =
+        (adjImp >= 0 ? '+' : '') + adjImp.toFixed(2) + '% adjusted · ' + proj[4].toLocaleString(undefined,{maximumFractionDigits:0}) + ' final';
+
+      // ── Smooth gradient area chart ───────────────────────────────────────
+      if(simInst) simInst.destroy();
+      const ctx = document.getElementById('simChart').getContext('2d');
+
+      // Build vertical gradient fill
+      const grad = ctx.createLinearGradient(0, 0, 0, 200);
+      grad.addColorStop(0,   pos ? 'rgba(48,209,88,.22)'  : 'rgba(255,69,58,.22)');
+      grad.addColorStop(0.6, pos ? 'rgba(48,209,88,.06)'  : 'rgba(255,69,58,.06)');
+      grad.addColorStop(1,   'rgba(0,0,0,0)');
+
+      simInst = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: proj.map((_,i) => 'T' + i),
+          datasets: [{
+            data: proj,
+            borderColor: accentHex,
+            backgroundColor: grad,
+            borderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 8,
+            pointBackgroundColor: accentHex,
+            pointBorderColor: '#000',
+            pointBorderWidth: 2,
+            fill: true,
+            tension: 0.42,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(10,10,10,.92)',
+              titleColor: '#fff',
+              bodyColor: 'rgba(255,255,255,.55)',
+              borderColor: 'rgba(255,255,255,.08)',
+              borderWidth: 1,
+              padding: 14,
+              cornerRadius: 10,
+              callbacks: {
+                title: items => 'Time step ' + items[0].label,
+                label: item => ' ' + item.parsed.y.toLocaleString(undefined,{maximumFractionDigits:0}) + ' units',
+                afterLabel: item => {
+                  const i = item.dataIndex;
+                  if(i === 0) return ' Base value';
+                  const delta = proj[i] - proj[i-1];
+                  return ' ' + (delta >= 0 ? '+' : '') + delta.toLocaleString(undefined,{maximumFractionDigits:0}) + ' vs prev';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255,255,255,.03)', drawBorder: false },
+              ticks: { color: '#48484a', font: { size: 11, family: monoFont }, padding: 8 },
+              border: { display: false }
+            },
+            y: {
+              grid: { color: 'rgba(255,255,255,.03)', drawBorder: false },
+              ticks: {
+                color: '#48484a',
+                font: { size: 11, family: monoFont },
+                padding: 10,
+                callback: v => {
+                  if(v >= 1e6) return (v/1e6).toFixed(1) + 'M';
+                  if(v >= 1e3) return (v/1e3).toFixed(0) + 'K';
+                  return v;
+                }
+              },
+              border: { display: false }
+            }
+          }
+        }
+      });
+      document.getElementById('simResults').classList.add('show');
+      btn.innerHTML='▶ Run simulation';btn.disabled=false;
+    }
+
+    // AGENT
+    function chipAsk(el){document.getElementById('chatIn').value=el.textContent;sendChat();}
+    async function sendChat(){
+      const inp=document.getElementById('chatIn');const q=inp.value.trim();if(!q)return;inp.value='';
+      const area=document.getElementById('chatArea');
+      area.innerHTML+=`<div class="chat-msg user">${q}</div>`;
+      area.innerHTML+=`<div class="chat-msg bot" id="typMsg"><span class="spin light"></span> Thinking…</div>`;
+      area.scrollTop=area.scrollHeight;
+      await sleep(850);
+      const ql=q.toLowerCase();
+      let resp=BOT.default;
+      if(ql.includes('risk'))resp=BOT.risk;
+      else if(ql.includes('crash')||ql.includes('market'))resp=BOT.crash;
+      else if(ql.includes('divers'))resp=BOT.divers;
+      else if(ql.includes('sharpe'))resp=BOT.sharpe;
+      else if(ql.includes('alloc')||ql.includes('recommend'))resp=BOT.alloc;
+      if(user&&!user.isDemo){try{const r=await fetch(`${API}/agent?query=${encodeURIComponent(q)}`,{method:'POST'});const d=await r.json();if(d.response)resp=d.response;}catch{}}
+      document.getElementById('typMsg')?.remove();
+      area.innerHTML+=`<div class="chat-msg bot">${resp}</div>`;
+      area.scrollTop=area.scrollHeight;
+    }
+
+    // UTILS
+    function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+    function showFlash(id,msg,type='ok'){const el=document.getElementById(id);if(!el)return;el.innerHTML=`<div class="notice ${type}">${msg}</div>`;setTimeout(()=>el.innerHTML='',4000);}
+
+    // REVEALS
+    const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:.12,rootMargin:'0px 0px -60px 0px'});
+    document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+    // EXPOSE GLOBALS
+    window.loadPortfolio=loadPortfolio;window.addAsset=addAsset;window.removeAsset=removeAsset;
+    window.runAnalysis=runAnalysis;window.pickScen=pickScen;window.runSim=runSim;
+    window.chipAsk=chipAsk;window.sendChat=sendChat;window.signOut=signOut;
+    window.toggleDrawer=toggleDrawer;window.closeDrawer=closeDrawer;
+
+
+    // EVENTS FEED
+    const EVENTS_DATA=[
+      {cat:'Earnings',col:'rgba(255,214,10,.5)',headline:'NVDA Q4 EPS beats by 8.2%. Data center revenue +409% YoY. Guidance raised.',impact:'+4.2%',pos:true,t:'2m ago'},
+      {cat:'Fed',col:'rgba(255,69,58,.5)',headline:'Fed Chair signals no rate cuts before Q3. Inflation still above 2% target.',impact:'-1.1%',pos:false,t:'7m ago'},
+      {cat:'Macro',col:'rgba(6,182,212,.5)',headline:'US CPI rises 3.2% YoY in January. Core at 3.9%, above consensus of 3.7%.',impact:'-0.8%',pos:false,t:'15m ago'},
+      {cat:'Earnings',col:'rgba(255,214,10,.5)',headline:'MSFT Azure growth accelerates to 28%. AI Copilot hits 1.3M paying seats.',impact:'+2.9%',pos:true,t:'22m ago'},
+      {cat:'Sector',col:'rgba(48,209,88,.5)',headline:'Tech sector outperforms S&P 500 by 340bps this week on AI enthusiasm.',impact:'+3.4%',pos:true,t:'35m ago'},
+      {cat:'Geopolitics',col:'rgba(255,69,58,.5)',headline:'US-China export restrictions expand to cover advanced AI chips.',impact:'-1.4%',pos:false,t:'48m ago'},
+      {cat:'Macro',col:'rgba(6,182,212,.5)',headline:'US jobs: 256K added in December. Unemployment falls to 4.1%, beats estimates.',impact:'+0.4%',pos:true,t:'1h ago'},
+      {cat:'Crypto',col:'rgba(139,92,246,.5)',headline:'Bitcoin ETF sees $500M daily inflow. BTC tests $68K resistance level.',impact:'Neutral',pos:null,t:'1h ago'},
+      {cat:'Fed',col:'rgba(255,69,58,.5)',headline:'Fed minutes: Officials cautious about premature easing, watching wage growth.',impact:'-0.5%',pos:false,t:'2h ago'},
+      {cat:'Earnings',col:'rgba(255,214,10,.5)',headline:'AAPL iPhone 16 cycle beats expectations. Services revenue up 14% YoY.',impact:'+1.8%',pos:true,t:'2h ago'},
+      {cat:'Macro',col:'rgba(6,182,212,.5)',headline:'EU GDP growth beats expectations at 0.4% QoQ. Germany avoids recession.',impact:'+0.6%',pos:true,t:'3h ago'},
+      {cat:'Earnings',col:'rgba(255,214,10,.5)',headline:'AMZN AWS re-accelerates to 17% growth. Operating margin hits record 10.6%.',impact:'+3.1%',pos:true,t:'3h ago'},
+    ];
+
+    function makeEvCard(ev){
+      const col = ev.pos===true ? 'var(--green)' : ev.pos===false ? 'var(--red)' : 'var(--muted)';
+      return `<div class="ev-card" style="--ev-col:${ev.col}">
+        <div class="ev-cat">${ev.cat}</div>
+        <div class="ev-headline">${ev.headline}</div>
+        <div class="ev-foot">
+          <span class="ev-time">${ev.t}</span>
+          <span class="ev-impact" style="color:${col}">${ev.impact}</span>
+        </div>
+      </div>`;
+    }
+
+    function initEvents(){
+      const row1 = document.getElementById('dashEvRow1');
+      const row2 = document.getElementById('dashEvRow2');
+      if(!row1 || !row2) return;
+      const cards1 = [...EVENTS_DATA, ...EVENTS_DATA].map(makeEvCard).join('');
+      const cards2 = [...EVENTS_DATA].reverse().concat([...EVENTS_DATA].reverse()).map(makeEvCard).join('');
+      row1.innerHTML = cards1;
+      row2.innerHTML = cards2;
+    }
+
+    // INIT
+    initUser();
+    initEvents();
+</script>
+</body>
+</html>

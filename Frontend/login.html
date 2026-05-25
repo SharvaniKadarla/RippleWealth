@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <title>RippleWealth — Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=Geist:wght@200;300;400;500;600&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root{
+          --black:#000;--off-black:#080808;--panel:#111;--panel2:#161616;
+          --border:rgba(255,255,255,0.1);--border-bright:rgba(255,255,255,0.2);
+          --white:#fff;--off-white:#f5f5f7;--text:#e8e8ed;--muted:#86868b;
+          --faint:#48484a;--green:#30d158;--green-dim:rgba(48,209,88,0.15);
+          --red:#ff453a;--red-dim:rgba(255,69,58,0.15);--radius:18px;--nav-h:48px;
+        }
+        html{font-size:16px}
+        body{background:var(--black);color:var(--text);font-family:'Geist',sans-serif;-webkit-font-smoothing:antialiased;min-height:100svh;display:flex;flex-direction:column;cursor:none;overflow-x:hidden}
+
+        /* CURSOR */
+        .cursor{position:fixed;z-index:99999;pointer-events:none;mix-blend-mode:difference}
+        .cursor-dot{width:8px;height:8px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);transition:transform .08s ease,width .25s ease,height .25s ease;position:absolute}
+        .cursor-ring{width:36px;height:36px;border-radius:50%;border:1.5px solid rgba(255,255,255,.6);transform:translate(-50%,-50%);position:absolute;transition:transform .18s ease,width .3s ease,height .3s ease,opacity .3s ease}
+        body.hovering .cursor-dot{width:4px;height:4px}
+        body.hovering .cursor-ring{width:54px;height:54px;opacity:.5}
+
+        /* NAV */
+        .nav{height:var(--nav-h);display:flex;align-items:center;padding:0 22px;border-bottom:1px solid var(--border);position:relative;z-index:10}
+        .nav-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.06em;color:var(--white);text-decoration:none}
+        .nav-back{margin-left:auto;font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s;display:flex;align-items:center;gap:6px}
+        .nav-back:hover{color:var(--white)}
+
+        /* PAGE LAYOUT */
+        .page{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:calc(100svh - var(--nav-h))}
+
+        /* LEFT PANEL */
+        .left-panel{
+          padding:80px 60px;
+          display:flex;flex-direction:column;justify-content:center;
+          background:var(--off-black);border-right:1px solid var(--border);
+          position:relative;overflow:hidden;
+        }
+        .left-panel::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 50%,rgba(255,255,255,.03),transparent);pointer-events:none}
+        .lp-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:980px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);font-size:11px;font-weight:400;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:36px;width:fit-content}
+        .lp-eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+        .lp-heading{font-family:'Bebas Neue',sans-serif;font-size:clamp(56px,7vw,88px);letter-spacing:.02em;line-height:.9;color:var(--white);margin-bottom:8px}
+        .lp-heading em{font-family:'Instrument Serif',serif;font-style:italic;color:transparent;-webkit-text-stroke:1px rgba(255,255,255,.4)}
+        .lp-sub{font-size:16px;font-weight:300;color:var(--muted);line-height:1.65;max-width:380px;margin-top:24px}
+        .lp-stats{margin-top:48px;display:flex;flex-direction:column;gap:12px}
+        .lp-stat{display:flex;align-items:center;gap:14px;padding:16px 20px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--border)}
+        .lp-stat-icon{font-size:20px;flex-shrink:0}
+        .lp-stat-label{font-size:12px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+        .lp-stat-val{font-family:'Geist Mono',monospace;font-size:16px;font-weight:300;color:var(--white)}
+
+        /* RIGHT PANEL */
+        .right-panel{
+          padding:80px 60px;
+          display:flex;flex-direction:column;justify-content:center;
+          background:var(--black);
+        }
+        .auth-card{width:100%;max-width:400px;margin:0 auto}
+        .auth-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.04em;color:var(--white);margin-bottom:4px}
+        .auth-sub{font-size:13px;color:var(--muted);margin-bottom:32px;font-weight:300}
+        .auth-tabs{display:flex;gap:0;background:var(--panel2);border-radius:10px;padding:3px;margin-bottom:28px}
+        .auth-tab{flex:1;height:36px;border:none;background:transparent;color:var(--muted);font-family:'Geist',sans-serif;font-size:13px;cursor:pointer;border-radius:8px;transition:all .2s;font-weight:400}
+        .auth-tab.on{background:rgba(255,255,255,.1);color:var(--white)}
+        .auth-field{margin-bottom:14px}
+        .auth-field label{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin-bottom:7px;font-weight:400}
+        .auth-field input{width:100%;height:46px;background:var(--panel);border:1px solid var(--border);border-radius:12px;color:var(--white);padding:0 16px;font-size:14px;font-family:'Geist',sans-serif;outline:none;transition:all .2s}
+        .auth-field input:focus{border-color:rgba(255,255,255,.3);background:var(--panel2)}
+        .auth-field input::placeholder{color:var(--faint)}
+        .auth-submit{width:100%;height:46px;margin-top:8px;background:var(--white);color:var(--black);border:none;border-radius:12px;font-family:'Geist',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+        .auth-submit:hover{background:var(--off-white);transform:scale(1.01)}
+        .auth-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+        .auth-hint{margin-top:16px;text-align:center;font-size:11px;color:var(--faint)}
+        .auth-hint code{background:var(--panel2);padding:2px 7px;border-radius:5px;font-family:'Geist Mono',monospace;font-size:11px;color:var(--muted)}
+        .auth-divider{margin:24px 0;display:flex;align-items:center;gap:12px}
+        .auth-divider span{font-size:11px;color:var(--faint);white-space:nowrap}
+        .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+        .auth-demo{width:100%;height:46px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:12px;font-family:'Geist',sans-serif;font-size:13px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+        .auth-demo:hover{border-color:rgba(255,255,255,.3);color:var(--white);background:rgba(255,255,255,.04)}
+        .notice{padding:10px 16px;border-radius:10px;font-size:13px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+        .notice.ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(48,209,88,.2)}
+        .notice.err{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,69,58,.2)}
+        .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.15);border-top-color:rgba(0,0,0,.7);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+        .spin.light{border-color:rgba(255,255,255,.15);border-top-color:var(--white)}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        @media(max-width:768px){
+          .page{grid-template-columns:1fr}
+          .left-panel{display:none}
+          .right-panel{padding:40px 24px}
+          .auth-card{max-width:100%}
+        }
+    </style>
+</head>
+<body>
+
+<div class="cursor" id="cursor">
+    <div class="cursor-dot" id="cursorDot"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+</div>
+
+<nav class="nav">
+    <a class="nav-logo" href="index.html">RIPPLEWEALTH</a>
+    <a class="nav-back" href="index.html">← Back to home</a>
+</nav>
+
+<div class="page">
+    <!-- LEFT: brand / value prop -->
+    <div class="left-panel">
+        <div class="lp-eyebrow">Portfolio intelligence · AI-powered</div>
+        <h1 class="lp-heading">Invest with<br><em>Intelligence</em></h1>
+        <p class="lp-sub">Institutional-grade portfolio analytics, real-time risk metrics, and AI-driven insights — all in one elegant platform.</p>
+        <div class="lp-stats">
+            <div class="lp-stat">
+                <span class="lp-stat-icon">📊</span>
+                <div><div class="lp-stat-label">Live risk metrics</div><div class="lp-stat-val">Sharpe · VaR · Volatility</div></div>
+            </div>
+            <div class="lp-stat">
+                <span class="lp-stat-icon">🤖</span>
+                <div><div class="lp-stat-label">AI advisor</div><div class="lp-stat-val">Multi-agent intelligence</div></div>
+            </div>
+            <div class="lp-stat">
+                <span class="lp-stat-icon">🎯</span>
+                <div><div class="lp-stat-label">Scenario simulation</div><div class="lp-stat-val">Crash · Inflation · Bull run</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: auth form -->
+    <div class="right-panel">
+        <div class="auth-card">
+            <div class="auth-logo">RIPPLEWEALTH</div>
+            <div class="auth-sub">Portfolio intelligence · AI-powered</div>
+            <div id="authNotice"></div>
+            <div class="auth-tabs">
+                <button class="auth-tab on" id="tabLogin" onclick="switchTab('login')">Sign in</button>
+                <button class="auth-tab" id="tabReg" onclick="switchTab('register')">Create account</button>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <div id="formLogin">
+                <div class="auth-field"><label>Username</label><input id="logU" placeholder="username" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+                <div class="auth-field"><label>Password</label><input id="logP" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+                <button class="auth-submit" id="loginBtn" onclick="doLogin()">Sign in →</button>
+                <div class="auth-hint">Demo account: <code>demo</code> / <code>demo123</code></div>
+                <div class="auth-divider"><span>or</span></div>
+                <button class="auth-demo" onclick="demoLogin()">⚡ Continue with demo account</button>
+            </div>
+
+            <!-- REGISTER FORM -->
+            <div id="formReg" style="display:none">
+                <div class="auth-field"><label>Username</label><input id="regU" placeholder="choose a username"/></div>
+                <div class="auth-field"><label>Password</label><input id="regP" type="password" placeholder="••••••••"/></div>
+                <button class="auth-submit" id="regBtn" onclick="doRegister()">Create account →</button>
+                <div class="auth-hint">Already have an account? <a href="#" onclick="switchTab('login');return false" style="color:var(--muted);text-decoration:underline;text-underline-offset:3px">Sign in</a></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = 'http://127.0.0.1:8001';
+    const USERS_KEY = 'rw_users'; // {username: hashedPassword}
+
+    // ── CURSOR ────────────────────────────────────────────────────────────
+    const dot=document.getElementById('cursorDot'),ring=document.getElementById('cursorRing'),cursor=document.getElementById('cursor');
+    let mx=0,my=0,rx=0,ry=0;
+    document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;dot.style.left=mx+'px';dot.style.top=my+'px';});
+    (function animRing(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animRing);})();
+    document.querySelectorAll('a,button,input').forEach(el=>{el.addEventListener('mouseenter',()=>document.body.classList.add('hovering'));el.addEventListener('mouseleave',()=>document.body.classList.remove('hovering'));});
+    if('ontouchstart' in window) cursor.style.display='none';
+
+    // ── LOCAL USER STORE ──────────────────────────────────────────────────
+    // Simple hash so passwords aren't stored plaintext
+    async function hashPw(str) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+
+    function getUsers() {
+      try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; } catch { return {}; }
+    }
+    function saveUsers(users) {
+      localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    }
+
+    // Seed the demo account on first load
+    (async () => {
+      const users = getUsers();
+      if (!users['demo']) {
+        users['demo'] = await hashPw('demo123');
+        saveUsers(users);
+      }
+    })();
+
+    // ── UI HELPERS ────────────────────────────────────────────────────────
+    function switchTab(tab) {
+      document.getElementById('formLogin').style.display = tab==='login' ? 'block' : 'none';
+      document.getElementById('formReg').style.display   = tab==='register' ? 'block' : 'none';
+      document.getElementById('tabLogin').classList.toggle('on', tab==='login');
+      document.getElementById('tabReg').classList.toggle('on',   tab==='register');
+      document.getElementById('authNotice').innerHTML = '';
+    }
+
+    function showNotice(msg, type='ok') {
+      document.getElementById('authNotice').innerHTML = `<div class="notice ${type}">${msg}</div>`;
+    }
+
+    function loginAs(username, isDemo=false) {
+      const uid = isDemo ? 'demo' : 'user_' + username;
+      localStorage.setItem('rw_user', JSON.stringify({uid, username, isDemo}));
+      // Each user gets their own portfolio key
+      window.location.href = 'dashboard.html';
+    }
+
+    // ── Backend reachability probe (1.5s timeout) ─────────────────────────
+    // Returns true only if the server is actually up and responding.
+    async function backendAlive() {
+      try {
+        const ctrl = new AbortController();
+        const tid   = setTimeout(() => ctrl.abort(), 1500);
+        const r     = await fetch(`${API}/docs`, { method: 'GET', signal: ctrl.signal });
+        clearTimeout(tid);
+        return r.ok || r.status === 404; // any HTTP response = server is up
+      } catch {
+        return false;
+      }
+    }
+
+    // ── SIGN IN ───────────────────────────────────────────────────────────
+    async function doLogin() {
+      const u = document.getElementById('logU').value.trim().toLowerCase();
+      const p = document.getElementById('logP').value;
+      if (!u || !p) { showNotice('Please enter username and password', 'err'); return; }
+
+      const btn = document.getElementById('loginBtn');
+      btn.innerHTML = '<span class="spin"></span> Signing in…'; btn.disabled = true;
+
+      if (await backendAlive()) {
+        // Backend is up — use it as the source of truth
+        try {
+          const r = await fetch(`${API}/login`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({username: u, password: p})
+          });
+          const d = await r.json();
+          if (d.user_id) {
+            localStorage.setItem('rw_user', JSON.stringify({uid: String(d.user_id), username: u, isDemo: false}));
+            window.location.href = 'dashboard.html';
+            return;
+          } else {
+            showNotice(d.detail || 'Invalid credentials', 'err');
+            btn.innerHTML = 'Sign in →'; btn.disabled = false;
+            return;
+          }
+        } catch {
+          showNotice('Server error — please try again', 'err');
+          btn.innerHTML = 'Sign in →'; btn.disabled = false;
+          return;
+        }
+      }
+
+      // Backend offline — use local store
+      const users = getUsers();
+      if (!users[u]) {
+        showNotice('Account not found — register first', 'err');
+        btn.innerHTML = 'Sign in →'; btn.disabled = false;
+        return;
+      }
+      const hash = await hashPw(p);
+      if (hash !== users[u]) {
+        showNotice('Incorrect password', 'err');
+        btn.innerHTML = 'Sign in →'; btn.disabled = false;
+        return;
+      }
+      loginAs(u, u === 'demo');
+    }
+
+    // ── REGISTER ──────────────────────────────────────────────────────────
+    async function doRegister() {
+      const u = document.getElementById('regU').value.trim().toLowerCase();
+      const p = document.getElementById('regP').value;
+      if (!u || !p)    { showNotice('Please fill in all fields', 'err'); return; }
+      if (u.length < 3){ showNotice('Username must be at least 3 characters', 'err'); return; }
+      if (p.length < 6){ showNotice('Password must be at least 6 characters', 'err'); return; }
+
+      const btn = document.getElementById('regBtn');
+      btn.innerHTML = '<span class="spin"></span> Creating…'; btn.disabled = true;
+
+      if (await backendAlive()) {
+        // Backend is up — register there
+        try {
+          const r = await fetch(`${API}/register`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({username: u, password: p})
+          });
+          const d = await r.json();
+
+          if (d.user_id) {
+            // New main.py returns user_id directly
+            localStorage.setItem('rw_user', JSON.stringify({uid: String(d.user_id), username: u, isDemo: false}));
+            window.location.href = 'dashboard.html';
+            return;
+          } else if (d.message === 'User registered successfully') {
+            // Original main.py — follow up with a login to get the id
+            try {
+              const lr = await fetch(`${API}/login`, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({username: u, password: p})
+              });
+              const ld = await lr.json();
+              if (ld.user_id) {
+                localStorage.setItem('rw_user', JSON.stringify({uid: String(ld.user_id), username: u, isDemo: false}));
+                window.location.href = 'dashboard.html';
+                return;
+              }
+            } catch {}
+            loginAs(u, false);
+            return;
+          } else {
+            // Backend rejected (e.g. "User already exists")
+            showNotice(d.detail || 'Registration failed', 'err');
+            btn.innerHTML = 'Create account →'; btn.disabled = false;
+            return;
+          }
+        } catch {
+          showNotice('Server error — please try again', 'err');
+          btn.innerHTML = 'Create account →'; btn.disabled = false;
+          return;
+        }
+      }
+
+      // Backend offline — save locally
+      const users = getUsers();
+      if (users[u]) {
+        showNotice('Username already taken — try signing in', 'err');
+        btn.innerHTML = 'Create account →'; btn.disabled = false;
+        return;
+      }
+      users[u] = await hashPw(p);
+      saveUsers(users);
+      showNotice('Account created!', 'ok');
+      await new Promise(r => setTimeout(r, 500));
+      loginAs(u, false);
+    }
+
+    // ── DEMO ──────────────────────────────────────────────────────────────
+    function demoLogin() {
+      loginAs('demo', true);
+    }
+
+    // ── INIT ──────────────────────────────────────────────────────────────
+    // If already logged in, skip to dashboard
+    try { const u = JSON.parse(localStorage.getItem('rw_user')); if (u && u.uid) window.location.href = 'dashboard.html'; } catch {}
+
+    // Pre-fill demo hint
+    document.getElementById('logU').value = 'demo';
+    document.getElementById('logP').value = 'demo123';
+</script>
+</body>
+</html>
