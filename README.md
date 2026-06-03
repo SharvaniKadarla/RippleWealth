@@ -190,6 +190,7 @@ Current project layout:
 ```text
 C:\Users\Downloads\ripplewealth\
 └── ripplewealth/
+    │
     ├── requirements.txt
     ├── venv/
     │
@@ -203,7 +204,7 @@ C:\Users\Downloads\ripplewealth\
     │   ├── scenario_agent.py
     │   ├── explanation_agent.py
     │   └── demo.py
-
+    │
     ├── Backend/
     │   ├── main.py
     │   ├── orchestrator.py
